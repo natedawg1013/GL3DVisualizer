@@ -36,7 +36,7 @@ var dr = 5.0 * Math.PI/180.0;
 const black = vec4(0.0, 0.0, 0.0, 1.0);
 const red = vec4(1.0, 0.0, 0.0, 1.0);
 
-const at = vec3(0.0, 0.0, 0.0);
+var at = vec3(0.0, 0.0, 0.0);
 const up = vec3(0.0, 1.0, 0.0);
 
 var left = -1.0;
@@ -115,25 +115,61 @@ function initControls(){
     document.getElementById("Tall").onclick = function(){ytop  *= 0.9; bottom *= 0.9;};
     document.getElementById("Short").onclick = function(){ytop *= 1.1; bottom *= 1.1;};
     //Keydown Event listener, binds arrow keys to rotation
-    document.addEventListener('keydown', function(event){
-        console.log("key pressed");
-        switch (event.keyCode){
-            case 37:
+    keyHandler();
+}
+function keyHandler(){
+    document.addEventListener('keydown', function(event) {
+    event = event || window.event;
+    if (event.ctrlKey)
+    {
+        //up
+        if (event.keyCode == 38)
+        {
+            at[0] -= 0.1;
+            console.log(at);
+        }
+        //down
+        else if (event.keyCode == 40)
+        {
+            at[0] += 0.1;
+        }
+        //left
+        else if (event.keyCode == 37)
+        {
+            at[2] += 0.1;
+            console.log(at);
+        }
+        //right
+        else if (event.keyCode == 39)
+        {
+            at[2] -= 0.1;
+            console.log(at);
+        }
+        
+    }
+    else
+    {
+        switch (event.keyCode)
+        {
+            case 37: //left arrow
                 theta -= dr;
                 break;
-            case 39:
+            case 39: //right arrow
                 theta += dr;
                 break;
-            case 38:
+            case 38: //up arrow
                 phi += dr;
                 break;
-            case 40:
+            case 40: //down arrow
                 phi -= dr;
                 break;
+            default:
+                break;
         }
-        console.log(event.keyCode);
-    });
+   }
+});
 }
+
 var count = 0;
 function render()
 {
