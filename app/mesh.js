@@ -98,9 +98,14 @@ window.onload = function init()
  
     modelViewMatrixLoc = gl.getUniformLocation( program, "modelViewMatrix" );
     projectionMatrixLoc = gl.getUniformLocation( program, "projectionMatrix" );
+	initControls();
 
-// buttons for moving viewer and changing size
+    render();
+ 
+}
 
+function initControls(){
+    // buttons for moving viewer and changing size
     document.getElementById("Theta+").onclick = function(){theta += dr;};
     document.getElementById("Theta-").onclick = function(){theta -= dr;};
     document.getElementById("Phi+").onclick = function(){phi += dr;};
@@ -109,13 +114,27 @@ window.onload = function init()
     document.getElementById("Narrow").onclick = function(){left *= 1.1; right *= 1.1;};
     document.getElementById("Tall").onclick = function(){ytop  *= 0.9; bottom *= 0.9;};
     document.getElementById("Short").onclick = function(){ytop *= 1.1; bottom *= 1.1;};
-       
-    render();
- 
+    //Keydown Event listener, binds arrow keys to rotation
+    document.addEventListener('keydown', function(event){
+        console.log("key pressed");
+        switch (event.keyCode){
+            case 37:
+                theta -= dr;
+                break;
+            case 39:
+                theta += dr;
+                break;
+            case 38:
+                phi += dr;
+                break;
+            case 40:
+                phi -= dr;
+                break;
+        }
+        console.log(event.keyCode);
+    });
 }
-
 var count = 0;
-
 function render()
 {
     if(count==2){
