@@ -41,8 +41,8 @@ const up = vec3(0.0, 1.0, 0.0);
 
 var left = -1.0;
 var right = 1.0;
-var ytop = 1.5;
-var bottom = -1.0;
+var ytop = 2.0;
+var bottom = 0;
 
 var modeViewMatrix, projectionMatrix;
 var modelViewMatrixLoc, projectionMatrixLoc;
@@ -173,6 +173,10 @@ function keyHandler(){
 var count = 0;
 function render()
 {
+  var canvas = document.getElementById( "gl-canvas" );
+  canvas.width  = window.innerWidth-20;
+  canvas.height = window.innerHeight-150;
+  //...drawing code...
     if(count==2){
         data.push(data.shift());
         count=0;
