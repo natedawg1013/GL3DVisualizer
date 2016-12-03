@@ -33,6 +33,14 @@ var theta  = -Math.PI/2;
 var phi    = -Math.PI/4;
 var dr = 5.0 * Math.PI/180.0;
 
+var camera = {
+    near: -10,
+    far: 10,
+    aspect: 1,
+    fovAngle: 95,
+    z: 1
+}
+
 const black = vec4(0.0, 0.0, 0.0, 1.0);
 const red = vec4(1.0, 0.0, 0.0, 1.0);
 
@@ -44,7 +52,6 @@ var right = 1.0;
 var ytop = 2.0;
 var bottom = 0;
 
-var modeViewMatrix, projectionMatrix;
 var modelViewMatrixLoc, projectionMatrixLoc;
 
 var vBufferId;
@@ -118,58 +125,71 @@ function initControls(){
     keyHandler();
 }
 function keyHandler(){
-    document.addEventListener('keydown', function(event) {
-    event = event || window.event;
-    if (event.ctrlKey)
+    document.addEventListener('mousewheel', function(event)
     {
-        //up
-        if (event.keyCode == 38)
-        {
-            at[0] -= 0.1;
-            console.log(at);
-        }
-        //down
-        else if (event.keyCode == 40)
-        {
-            at[0] += 0.1;
-        }
-        //left
-        else if (event.keyCode == 37)
-        {
-            at[2] += 0.1;
-            console.log(at);
-        }
-        //right
-        else if (event.keyCode == 39)
-        {
-            at[2] -= 0.1;
-            console.log(at);
-        }
+        if (event.deltaY > 0) camera.z += 0.1;
+        else camera.z -= 0.1;
+        console.log(camera.z);
         
-    }
-    else
+    })
+    document.addEventListener('keydown', function(event)
     {
-        switch (event.keyCode)
+        event = event || window.event;
+        if (event.ctrlKey)
         {
-            case 37: //left arrow
-                theta -= dr;
-                break;
-            case 39: //right arrow
-                theta += dr;
-                break;
-            case 38: //up arrow
-                phi += dr;
-                break;
-            case 40: //down arrow
-                phi -= dr;
-                break;
-            default:
-                break;
+            //up
+            if (event.keyCode == 38)
+            {
+                at[0] -= 0.1;
+                console.log(at);
+            }
+            //down
+            else if (event.keyCode == 40)
+            {
+                at[0] += 0.1;
+            }
+            //left
+            else if (event.keyCode == 37)
+            {
+                at[2] += 0.1;
+                console.log(at);
+            }
+            //right
+            else if (event.keyCode == 39)
+            {
+                at[2] -= 0.1;
+                console.log(at);
+            }
+            
         }
-   }
+        else
+        {
+            switch (event.keyCode)
+            {
+                case 37: //left arrow
+                    theta -= dr;
+                    break;
+                case 39: //right arrow
+                    theta += dr;
+                    break;
+                case 38: //up arrow
+                    phi += dr;
+                    break;
+                case 40: //down arrow
+                    phi -= dr;
+                    break;
+                default:
+                    break;
+            }
+       }
 });
 }
-
+function degToRad(degrees){
+	return degrees * Math.PI / 180;
+}
+function radToDeg(r){
+	return r * 180 / Math.PI;
+}
 var count = 0;
 function render()
 {
@@ -186,12 +206,13 @@ function render()
     pointsArray = [];
     for(var i=0; i<nRows-1; i++) {
         for(var j=0; j<nColumns-1;j++) {
-            pointsArray.push( vec4(2*i/nRows-1, data[i][j]*((i)/nRows)+Math.sin(Math.PI*(i/nRows))/2, 2*j/nColumns-1, 1.0));
-            pointsArray.push( vec4(2*(i+1)/nRows-1, data[i+1][j]*((i)/nRows)+Math.sin(Math.PI*((i+1)/nRows))/2, 2*j/nColumns-1, 1.0)); 
-            pointsArray.push( vec4(2*(i+1)/nRows-1, data[i+1][j+1]*((i)/nRows)+Math.sin(Math.PI*((i+1)/nRows))/2, 2*(j+1)/nColumns-1, 1.0));
-            pointsArray.push( vec4(2*i/nRows-1, data[i][j+1]*((i)/nRows)+Math.sin(Math.PI*(i/nRows))/2, 2*(j+1)/nColumns-1, 1.0) );
+            pointsArray.push( vec4(2*i/nRows-1, data[i][j]*((i)/nRows)+Math.sin(Math.PI*(i/nRows))/2, 2*j/nColumns-1, camera.z));
+            pointsArray.push( vec4(2*(i+1)/nRows-1, data[i+1][j]*((i)/nRows)+Math.sin(Math.PI*((i+1)/nRows))/2, 2*j/nColumns-1, camera.z)); 
+            pointsArray.push( vec4(2*(i+1)/nRows-1, data[i+1][j+1]*((i)/nRows)+Math.sin(Math.PI*((i+1)/nRows))/2, 2*(j+1)/nColumns-1, camera.z));
+            pointsArray.push( vec4(2*i/nRows-1, data[i][j+1]*((i)/nRows)+Math.sin(Math.PI*(i/nRows))/2, 2*(j+1)/nColumns-1, camera.z) );
         }
     }
+   // console.log(pointsArray);
 
     gl.bindBuffer( gl.ARRAY_BUFFER, vBufferId );
     gl.bufferSubData( gl.ARRAY_BUFFER, 0, flatten(pointsArray));
@@ -202,10 +223,10 @@ function render()
     var eye = vec3( radius*Math.sin(theta)*Math.cos(phi), 
                     radius*Math.sin(theta)*Math.sin(phi),
                     radius*Math.cos(theta));
-    
+  //  loadCamera();
     modelViewMatrix = lookAt( eye, at, up );
-    projectionMatrix = ortho( left, right, bottom, ytop, near, far );
-    
+    projectionMatrix = perspective(45, camera.aspect, -5, 5.0);
+
     gl.uniformMatrix4fv( modelViewMatrixLoc, false, flatten(modelViewMatrix) );
     gl.uniformMatrix4fv( projectionMatrixLoc, false, flatten(projectionMatrix) );
     
