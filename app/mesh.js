@@ -34,10 +34,10 @@ var phi    = -Math.PI/4;
 var dr = 5.0 * Math.PI/180.0;
 
 var camera = {
-    near: -10,
-    far: 10,
+    near: -5,
+    far: 5,
     aspect: 1,
-    fovAngle: 95,
+    fovAngle: 45,
     z: 1
 }
 
@@ -128,9 +128,7 @@ function keyHandler(){
     document.addEventListener('mousewheel', function(event)
     {
         if (event.deltaY > 0) camera.z += 0.1;
-        else camera.z -= 0.1;
-        console.log(camera.z);
-        
+        else camera.z -= 0.1;        
     })
     document.addEventListener('keydown', function(event)
     {
