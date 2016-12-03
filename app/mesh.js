@@ -223,7 +223,7 @@ function render()
                     radius*Math.cos(theta));
   //  loadCamera();
     modelViewMatrix = lookAt( eye, at, up );
-    projectionMatrix = perspective(45, camera.aspect, -5, 5.0);
+    projectionMatrix = perspective(camera.fovAngle, camera.aspect, camera.near, camera.far);
 
     gl.uniformMatrix4fv( modelViewMatrixLoc, false, flatten(modelViewMatrix) );
     gl.uniformMatrix4fv( projectionMatrixLoc, false, flatten(projectionMatrix) );
