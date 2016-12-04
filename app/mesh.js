@@ -2,23 +2,15 @@
 var gl;
 
 var smoothing = 8;
-var nRows = 50;
-var nColumns = 50;
+var nRows = 64;
+var nColumns = 64;
 
 analyser.fftSize = 2048;
 var bufferLength = analyser.fftSize;
 var dataArray = new Uint8Array(bufferLength);
 
-// data for radial hat function: sin(Pi*r)/(Pi*r)
-
-var data = new Array(nRows+smoothing);
+var data = new Array(nRows+smoothing*2);
 data.fill(new Array(nColumns).fill(0));
-/*for( var i = 0; i < nRows+smoothing; ++i ) {
-    data.push( [] );
-    for( var j = 0; j < nColumns; ++j ) {
-        data[i][j] = 0.0;
-    }
-}*/
 
 
 var pointsArray = [];
@@ -28,32 +20,40 @@ var fColor;
 var near = -10;
 var far = 10;
 var radius = 6.0;
-var theta  = -Math.PI/2;
-var phi    = -Math.PI/4;
+//var theta  = -Math.PI/2;
+//var phi    = -Math.PI/4;
+console.log("var theta="+theta+";\nvar phi="+phi+";")
+var theta=-1.57;
+var phi=-0.8727335374002834;
 var dr = 5.0 * Math.PI/180.0;
 
 var camera = {
     near: -10,
     far: 5,
-    aspect: 1,
+    aspect: 0.7,
     fovAngle: 45,
-    z: 1
+    z: .4
 }
 
 const black = vec4(0.0, 0.0, 0.0, 1.0);
 const red = vec4(1.0, 0.0, 0.0, 1.0);
-var dx = 0.0, dy = 0.0, dz = 0.0;
-var at = vec3(0.0, 0.0, 0.0);
-const up = vec3(0.0, 1.0, 0.0);
+//var dx = 0.0, dy = 0.0, dz = 0.0;
+//console.log("var dx="+dx+", dy="+dy+", dz="+dz+";")
+var dx=-0.27497259058634904, dy=0.6095288320997905, dz=0.0008958460067709551;
 
-var left = -1.0;
-var right = 1.0;
-var ytop = 2.0;
-var bottom = 0;
+const up = vec3(0.0, 1.0, 0.0);
 
 var modelViewMatrixLoc, projectionMatrixLoc;
 
 var vBufferId;
+
+window.onresize = function resize(){
+    var canvas = document.getElementById( "gl-canvas" );
+    canvas.width=window.innerWidth-50;
+    canvas.height=window.innerHeight-50;
+    gl.viewport( 0, 0, canvas.width, canvas.height );
+    console.log(canvas.width + "," + canvas.height)
+}
 
 window.onload = function init()
 {
@@ -61,6 +61,8 @@ window.onload = function init()
     
     gl = WebGLUtils.setupWebGL( canvas );
     if ( !gl ) { alert( "WebGL isn't available" ); }
+    canvas.width=window.innerWidth-50;
+    canvas.height=window.innerHeight-50;
 
     gl.viewport( 0, 0, canvas.width, canvas.height );
     
@@ -88,7 +90,7 @@ window.onload = function init()
     //
     //  Load shaders and initialize attribute buffers
     //
-    var program = initShaders( gl, "vertex-shader", "fragment-shader" );
+    var program = initShaders( gl, "mountain-terrain-shader", "fragment-shader" );
     gl.useProgram( program );
     
 
@@ -111,16 +113,6 @@ window.onload = function init()
 }
 
 function initControls(){
-    // buttons for moving viewer and changing size
-/*    document.getElementById("Theta+").onclick = function(){theta += dr;};
-    document.getElementById("Theta-").onclick = function(){theta -= dr;};
-    document.getElementById("Phi+").onclick = function(){phi += dr;};
-    document.getElementById("Phi-").onclick = function(){phi -= dr;};
-    document.getElementById("Wide").onclick = function(){left  *= 0.9; right *= 0.9;};
-    document.getElementById("Narrow").onclick = function(){left *= 1.1; right *= 1.1;};
-    document.getElementById("Tall").onclick = function(){ytop  *= 0.9; bottom *= 0.9;};
-    document.getElementById("Short").onclick = function(){ytop *= 1.1; bottom *= 1.1;};
-*/    //Keydown Event listener, binds arrow keys to rotation
     keyHandler();
 }
 function keyHandler(){
@@ -163,9 +155,6 @@ function keyHandler(){
                 dx += Math.sin(theta) * 0.1 * Math.sin(phi);
                 dy -= Math.sin(theta) * 0.1 * Math.cos(phi);
                 dz += Math.sin(phi) * 0.1 * Math.cos(theta);
-                at[0] = dx;
-                at[1] = dy;
-                at[2] = dz;
             }
             //down
             else if (event.keyCode == 40 || event.keyCode == 83)
@@ -174,9 +163,6 @@ function keyHandler(){
                 dx -= Math.sin(theta) * 0.1 * Math.sin(phi);
                 dy += Math.sin(theta) * 0.1 * Math.cos(phi);
                 dz -= Math.sin(phi) * 0.1 * Math.cos(theta);
-                at[0] = dx;
-                at[1] = dy;
-                at[2] = dz;
             }
             //left
             else if (event.keyCode == 37 || event.keyCode == 65)
@@ -184,9 +170,6 @@ function keyHandler(){
                 event.preventDefault();
                 dx += Math.cos(theta) * 0.1;
                 dz += Math.sin(theta) * 0.1;
-
-                at[0] = dx;
-                at[2] = dz;
             }
             //right
             else if (event.keyCode == 39 || event.keyCode == 68)
@@ -194,8 +177,6 @@ function keyHandler(){
                 event.preventDefault();
                 dx -= Math.cos(theta) * 0.1;
                 dz -= Math.sin(theta) * 0.1;
-                at[0] = dx;
-                at[2] = dz;
             }
        }
 });
@@ -206,33 +187,28 @@ function degToRad(degrees){
 function radToDeg(r){
 	return r * 180 / Math.PI;
 }
-var count = 0;
 
 function render()
 {
   analyser.getByteTimeDomainData(dataArray);
-  var newArray = new Array(64);
+  var newArray = new Array(nColumns);
   newArray.fill(0);
-  var factor = (dataArray.length)/64;
-  //console.log(factor);\
-  //console.log(newArray[0]);
+  var factor = (dataArray.length)/nColumns;
+
   for(var i=0;i<dataArray.length;i++){
     newArray[Math.floor(i/factor)]+=((dataArray[i]-127)/255);
   } 
   for(var i=0;i<64;i++){
     newArray[i]/=factor;
   }
-  //console.log(newArray[0]);
   var canvas = document.getElementById( "gl-canvas" );
-  canvas.width  = window.innerWidth-20;
-  canvas.height = window.innerHeight-150;
   
     data.shift();
     data.push(newArray.slice(0,nColumns));
 
     var data2  = data.map(function(arr) {
-    return arr.slice();
-});
+                            return arr.slice();
+                          });
 
     function smoothArray( values, smoothing ){
       for(var j=0;j<values[0].length;++j){
@@ -279,21 +255,19 @@ function render()
         }
     }
 
-    remSS(data2);
+    //remSS(data2);
 
-    smoothArray(data2, smoothing);
-    smoothArray2(data2, 3);
-    data2 = data2.slice(smoothing);
-
-    //console.log(data2);
+    //smoothArray(data2, smoothing);
+    //smoothArray2(data2, 3);
+    data2 = data2.slice(smoothing, data2.length-smoothing);
 
     pointsArray = [];
     for(var i=0; i<nRows-1; i++) {
         for(var j=0; j<nColumns-1;j++) {
-            pointsArray.push( vec4(2*i/nRows-1,     data[i][j],     2*j/nColumns-1,      camera.z));
-            pointsArray.push( vec4(2*(i+1)/nRows-1, data[i+1][j],   2*j/nColumns-1,      camera.z)); 
-            pointsArray.push( vec4(2*(i+1)/nRows-1, data[i+1][j+1], 2*(j+1)/nColumns-1,  camera.z));
-            pointsArray.push( vec4(2*i/nRows-1,     data[i][j+1],   2*(j+1)/nColumns-1,  camera.z));
+            pointsArray.push( vec4(2*i/nRows-1,     data2[i][j],     2*j/nColumns-1,      camera.z));
+            pointsArray.push( vec4(2*(i+1)/nRows-1, data2[i+1][j],   2*j/nColumns-1,      camera.z)); 
+            pointsArray.push( vec4(2*(i+1)/nRows-1, data2[i+1][j+1], 2*(j+1)/nColumns-1,  camera.z));
+            pointsArray.push( vec4(2*i/nRows-1,     data2[i][j+1],   2*(j+1)/nColumns-1,  camera.z));
         }
     }
 
@@ -307,6 +281,7 @@ function render()
     var eye = vec3( radius*Math.sin(theta)*Math.cos(phi) + dx, 
                     radius*Math.sin(theta)*Math.sin(phi) + dy,
                     radius*Math.cos(theta) + dz) ;
+    var at = vec3(dx, dy, dz);
 
     modelViewMatrix = lookAt( eye, at, up );
     projectionMatrix = perspective(camera.fovAngle, camera.aspect, camera.near, camera.far);
