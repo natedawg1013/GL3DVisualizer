@@ -337,9 +337,10 @@ function render()
        // col = rgbToHsl(0, col[1], 0);
        // console.log(col);
         col[3] = 1.0;
-        gl.uniform4fv(fColor, flatten(black));
+        var magenta = vec4(1,1,0,1);  //magenta means use shader colors
+        gl.uniform4fv(fColor, flatten(magenta));
         gl.drawArrays( gl.LINE_LOOP, pointsArray.length-4-i, 4 );
-        gl.uniform4fv(fColor, flatten(col));
+        gl.uniform4fv(fColor, flatten(magenta));
         gl.drawArrays( gl.TRIANGLE_FAN, pointsArray.length-4-i, 4 );
         
     }

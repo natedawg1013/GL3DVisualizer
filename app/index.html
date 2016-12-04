@@ -61,7 +61,9 @@
     void
     main()
     {
-        gl_FragColor = color;
+        vec4 magenta = vec4(1.0,1.0,0.0,1.0);
+        if(fColor==magenta) gl_FragColor = color;
+        else gl_FragColor = fColor;
     }
     </script>
     <script>
