@@ -1,6 +1,7 @@
 
 var gl;
 
+var smoothing = 8;
 var nRows = 50;
 var nColumns = 50;
 
@@ -10,20 +11,14 @@ var dataArray = new Uint8Array(bufferLength);
 
 // data for radial hat function: sin(Pi*r)/(Pi*r)
 
-var data = [];
-for( var i = 0; i < nRows; ++i ) {
+var data = new Array(nRows+smoothing);
+data.fill(new Array(nColumns).fill(0));
+/*for( var i = 0; i < nRows+smoothing; ++i ) {
     data.push( [] );
-    var x = Math.PI*(4*i/nRows-2.0);
-    
     for( var j = 0; j < nColumns; ++j ) {
-        var y = Math.PI*(4*j/nRows-2.0);
-        var r = Math.sqrt(x*x+y*y);
-        
-        // take care of 0/0 for r = 0
-        
         data[i][j] = 0.0;
     }
-}
+}*/
 
 
 var pointsArray = [];
@@ -165,9 +160,9 @@ function keyHandler(){
             if (event.keyCode == 38 || event.keyCode == 87)
             {
                 event.preventDefault();
-                dx -= Math.sin(theta) * 0.1 * Math.sin(phi);
-                dy += Math.sin(theta) * 0.1 * Math.cos(phi);
-                dz -= Math.sin(phi) * 0.1 * Math.cos(theta);
+                dx += Math.sin(theta) * 0.1 * Math.sin(phi);
+                dy -= Math.sin(theta) * 0.1 * Math.cos(phi);
+                dz += Math.sin(phi) * 0.1 * Math.cos(theta);
                 at[0] = dx;
                 at[1] = dy;
                 at[2] = dz;
@@ -176,9 +171,9 @@ function keyHandler(){
             else if (event.keyCode == 40 || event.keyCode == 83)
             {
                 event.preventDefault();
-                dx += Math.sin(theta) * 0.1 * Math.sin(phi);
-                dy -= Math.sin(theta) * 0.1 * Math.cos(phi);
-                dz += Math.sin(phi) * 0.1 * Math.cos(theta);
+                dx -= Math.sin(theta) * 0.1 * Math.sin(phi);
+                dy += Math.sin(theta) * 0.1 * Math.cos(phi);
+                dz -= Math.sin(phi) * 0.1 * Math.cos(theta);
                 at[0] = dx;
                 at[1] = dy;
                 at[2] = dz;
@@ -187,8 +182,8 @@ function keyHandler(){
             else if (event.keyCode == 37 || event.keyCode == 65)
             {
                 event.preventDefault();
-                dx -= Math.cos(theta) * 0.1;
-                dz -= Math.sin(theta) * 0.1;
+                dx += Math.cos(theta) * 0.1;
+                dz += Math.sin(theta) * 0.1;
 
                 at[0] = dx;
                 at[2] = dz;
@@ -197,8 +192,8 @@ function keyHandler(){
             else if (event.keyCode == 39 || event.keyCode == 68)
             {
                 event.preventDefault();
-                dx += Math.cos(theta) * 0.1;
-                dz += Math.sin(theta) * 0.1;
+                dx -= Math.cos(theta) * 0.1;
+                dz -= Math.sin(theta) * 0.1;
                 at[0] = dx;
                 at[2] = dz;
             }
@@ -250,6 +245,23 @@ function render()
       }
     }
 
+    function smoothArray2( values, smoothing ){
+      for(var j=0;j<values.length;++j){
+          var value = values[j][0]; // start with the first input
+          for (var i=1, len=values[j].length; i<len; ++i){
+            var currentValue = values[j][i];
+            value += (currentValue - value) / (smoothing/2);
+            values[j][i] = value;
+          }
+          value = values[j][values[j].length-1];
+          for (var i=values[j].length-2; i>=0; --i){
+            var currentValue = values[j][i];
+            value += (currentValue - value) / (smoothing/2);
+            values[j][i] = value;
+          }
+      }
+    }
+
     function remSS(values){
         for(var i=0;i<values.length;i++){
             var total=0;
@@ -269,7 +281,9 @@ function render()
 
     remSS(data2);
 
-    smoothArray(data2, 2);
+    smoothArray(data2, smoothing);
+    smoothArray2(data2, 3);
+    data2 = data2.slice(smoothing);
 
     //console.log(data2);
 
@@ -281,10 +295,10 @@ function render()
             //pointsArray.push( vec4(2*(i+1)/nRows-1, data2[i+1][j+1]*((i)/nRows)+Math.sin(Math.PI*((i+1)/nRows))/2,  2*(j+1)/nColumns-1, camera.z));
             //pointsArray.push( vec4(2*i/nRows-1,     data2[i][j+1]*((i)/nRows)+Math.sin(Math.PI*(i/nRows))/2,        2*(j+1)/nColumns-1, camera.z));
 
-            pointsArray.push( vec4(2*i/nRows-1,     data[i][j],     2*j/nColumns-1,      camera.z));
-            pointsArray.push( vec4(2*(i+1)/nRows-1, data[i+1][j],   2*j/nColumns-1,      camera.z)); 
-            pointsArray.push( vec4(2*(i+1)/nRows-1, data[i+1][j+1], 2*(j+1)/nColumns-1,  camera.z));
-            pointsArray.push( vec4(2*i/nRows-1,     data[i][j+1],   2*(j+1)/nColumns-1,  camera.z));
+            pointsArray.push( vec4(2*i/nRows-1,     data2[i][j],     2*j/nColumns-1,      camera.z));
+            pointsArray.push( vec4(2*(i+1)/nRows-1, data2[i+1][j],   2*j/nColumns-1,      camera.z)); 
+            pointsArray.push( vec4(2*(i+1)/nRows-1, data2[i+1][j+1], 2*(j+1)/nColumns-1,  camera.z));
+            pointsArray.push( vec4(2*i/nRows-1,     data2[i][j+1],   2*(j+1)/nColumns-1,  camera.z));
 
         }
     }
