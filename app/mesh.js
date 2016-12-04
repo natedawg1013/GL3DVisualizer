@@ -290,20 +290,17 @@ function render()
     pointsArray = [];
     for(var i=0; i<nRows-1; i++) {
         for(var j=0; j<nColumns-1;j++) {
-            //pointsArray.push( vec4(2*i/nRows-1,     data2[i][j]*((i)/nRows)+Math.sin(Math.PI*(i/nRows))/2,          2*j/nColumns-1,     camera.z));
-            //pointsArray.push( vec4(2*(i+1)/nRows-1, data2[i+1][j]*((i)/nRows)+Math.sin(Math.PI*((i+1)/nRows))/2,    2*j/nColumns-1,     camera.z)); 
-            //pointsArray.push( vec4(2*(i+1)/nRows-1, data2[i+1][j+1]*((i)/nRows)+Math.sin(Math.PI*((i+1)/nRows))/2,  2*(j+1)/nColumns-1, camera.z));
-            //pointsArray.push( vec4(2*i/nRows-1,     data2[i][j+1]*((i)/nRows)+Math.sin(Math.PI*(i/nRows))/2,        2*(j+1)/nColumns-1, camera.z));
-
-            pointsArray.push( vec4(2*i/nRows-1,     data2[i][j],     2*j/nColumns-1,      camera.z));
-            pointsArray.push( vec4(2*(i+1)/nRows-1, data2[i+1][j],   2*j/nColumns-1,      camera.z)); 
-            pointsArray.push( vec4(2*(i+1)/nRows-1, data2[i+1][j+1], 2*(j+1)/nColumns-1,  camera.z));
-            pointsArray.push( vec4(2*i/nRows-1,     data2[i][j+1],   2*(j+1)/nColumns-1,  camera.z));
-
+            pointsArray.push( vec4(2*i/nRows-1,     data[i][j],     2*j/nColumns-1,      camera.z));
+            pointsArray.push( vec4(2*(i+1)/nRows-1, data[i+1][j],   2*j/nColumns-1,      camera.z)); 
+            pointsArray.push( vec4(2*(i+1)/nRows-1, data[i+1][j+1], 2*(j+1)/nColumns-1,  camera.z));
+            pointsArray.push( vec4(2*i/nRows-1,     data[i][j+1],   2*(j+1)/nColumns-1,  camera.z));
         }
     }
 
     gl.bindBuffer( gl.ARRAY_BUFFER, vBufferId );
+
+
+
     gl.bufferSubData( gl.ARRAY_BUFFER, 0, flatten(pointsArray));
 
 
@@ -321,11 +318,30 @@ function render()
     
     // draw each quad as two filled red triangles
     // and then as two black line loops
-    
+    var currentMax = 0;
+   /* for (var m = 0; m < pointsArray.length; m++){
+        
+        //res =  Math.max.apply(pointsArray[m].map(function(o) {return o[2]}));
+        //console.log(res);
+    }*/
+    var col = new Array();
     for(var i=0; i<pointsArray.length; i+=4) { 
+        for (var j = 0; j < pointsArray[i].length; j++){
+            col[j] = (pointsArray[pointsArray.length-4-i][j]);
+        }
+      //  console.log(col);
+        if (col[1] < 0.25){
+            col = rgbToHsl(0, col[1], 0);
+        }
+        else if (col[1] > 0.25){
+            col = col = rgbToHsl(col[0], col[1], col[1]/2);
+        }
+       // col = rgbToHsl(0, col[1], 0);
+       // console.log(col);
+        col[3] = 1.0;
         gl.uniform4fv(fColor, flatten(black));
         gl.drawArrays( gl.LINE_LOOP, pointsArray.length-4-i, 4 );
-        gl.uniform4fv(fColor, flatten(red));
+        gl.uniform4fv(fColor, flatten(col));
         gl.drawArrays( gl.TRIANGLE_FAN, pointsArray.length-4-i, 4 );
         
     }
