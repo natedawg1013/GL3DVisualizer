@@ -31,7 +31,11 @@
 
     void main() 
     {
-        gl_Position = projectionMatrix*modelViewMatrix*vPosition;
+          vec4 position = vPosition;
+          position.y=position.y*(position.x+1.0)/2.0;
+          position.y += sin((position.x+1.0)*3.14159/2.0)/2.0;
+          gl_Position = projectionMatrix*modelViewMatrix*position;
+        //gl_Position = projectionMatrix*modelViewMatrix*vPosition;
     } 
     </script>
 
