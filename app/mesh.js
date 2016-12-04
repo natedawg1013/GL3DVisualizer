@@ -34,7 +34,7 @@ var phi    = -Math.PI/4;
 var dr = 5.0 * Math.PI/180.0;
 
 var camera = {
-    near: -5,
+    near: -10,
     far: 5,
     aspect: 1,
     fovAngle: 45,
@@ -43,7 +43,7 @@ var camera = {
 
 const black = vec4(0.0, 0.0, 0.0, 1.0);
 const red = vec4(1.0, 0.0, 0.0, 1.0);
-
+var dx = 0.0, dy = 0.0, dz = 0.0;
 var at = vec3(0.0, 0.0, 0.0);
 const up = vec3(0.0, 1.0, 0.0);
 
@@ -127,6 +127,7 @@ function initControls(){
 function keyHandler(){
     document.addEventListener('mousewheel', function(event)
     {
+        event.preventDefault();
         if (event.deltaY > 0) camera.z += 0.1;
         else camera.z -= 0.1;        
     })
@@ -135,49 +136,67 @@ function keyHandler(){
         event = event || window.event;
         if (event.ctrlKey)
         {
-            //up
-            if (event.keyCode == 38)
-            {
-                at[0] -= 0.1;
-                console.log(at);
-            }
-            //down
-            else if (event.keyCode == 40)
-            {
-                at[0] += 0.1;
-            }
-            //left
-            else if (event.keyCode == 37)
-            {
-                at[2] += 0.1;
-                console.log(at);
-            }
-            //right
-            else if (event.keyCode == 39)
-            {
-                at[2] -= 0.1;
-                console.log(at);
-            }
-            
-        }
-        else
-        {
+            event.preventDefault();
             switch (event.keyCode)
             {
-                case 37: //left arrow
+                case 37 || 65: //left arrow
                     theta -= dr;
                     break;
-                case 39: //right arrow
+                case 39 || 68: //right arrow
                     theta += dr;
                     break;
-                case 38: //up arrow
+                case 38 || 87: //up arrow
                     phi += dr;
                     break;
-                case 40: //down arrow
+                case 40 || 83: //down arrow
                     phi -= dr;
                     break;
                 default:
                     break;
+            }
+        }
+        else
+        {
+            //up
+            if (event.keyCode == 38 || event.keyCode == 87)
+            {
+                event.preventDefault();
+                dx -= Math.sin(theta) * 0.1 * Math.sin(phi);
+                dy += Math.sin(theta) * 0.1 * Math.cos(phi);
+                dz -= Math.sin(phi) * 0.1 * Math.cos(theta);
+                at[0] = dx;
+                at[1] = dy;
+                at[2] = dz;
+            }
+            //down
+            else if (event.keyCode == 40 || event.keyCode == 83)
+            {
+                event.preventDefault();
+                dx += Math.sin(theta) * 0.1 * Math.sin(phi);
+                dy -= Math.sin(theta) * 0.1 * Math.cos(phi);
+                dz += Math.sin(phi) * 0.1 * Math.cos(theta);
+                at[0] = dx;
+                at[1] = dy;
+                at[2] = dz;
+            }
+            //left
+            else if (event.keyCode == 37 || event.keyCode == 65)
+            {
+                event.preventDefault();
+                dx -= Math.cos(theta) * 0.1;
+                dz -= Math.sin(theta) * 0.1;
+
+                at[0] = dx;
+                at[2] = dz;
+            }
+            //right
+            else if (event.keyCode == 39 || event.keyCode == 68)
+            {
+                event.preventDefault();
+                dx += Math.cos(theta) * 0.1;
+                dz += Math.sin(theta) * 0.1;
+                at[0] = dx;
+                at[2] = dz;
             }
        }
 });
@@ -189,13 +208,14 @@ function radToDeg(r){
 	return r * 180 / Math.PI;
 }
 var count = 0;
+
 function render()
 {
   var canvas = document.getElementById( "gl-canvas" );
   canvas.width  = window.innerWidth-20;
   canvas.height = window.innerHeight-150;
-  //...drawing code...
-    if(count==2){
+
+  if(count==2){
         data.push(data.shift());
         count=0;
     }
@@ -210,18 +230,17 @@ function render()
             pointsArray.push( vec4(2*i/nRows-1, data[i][j+1]*((i)/nRows)+Math.sin(Math.PI*(i/nRows))/2, 2*(j+1)/nColumns-1, camera.z) );
         }
     }
-   // console.log(pointsArray);
 
     gl.bindBuffer( gl.ARRAY_BUFFER, vBufferId );
     gl.bufferSubData( gl.ARRAY_BUFFER, 0, flatten(pointsArray));
 
 
     gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-    
-    var eye = vec3( radius*Math.sin(theta)*Math.cos(phi), 
-                    radius*Math.sin(theta)*Math.sin(phi),
-                    radius*Math.cos(theta));
-  //  loadCamera();
+
+    var eye = vec3( radius*Math.sin(theta)*Math.cos(phi) + dx, 
+                    radius*Math.sin(theta)*Math.sin(phi) + dy,
+                    radius*Math.cos(theta) + dz) ;
+
     modelViewMatrix = lookAt( eye, at, up );
     projectionMatrix = perspective(camera.fovAngle, camera.aspect, camera.near, camera.far);
 
@@ -232,6 +251,7 @@ function render()
     // and then as two black line loops
     
     for(var i=0; i<pointsArray.length; i+=4) { 
+
         gl.uniform4fv(fColor, flatten(red));
         gl.drawArrays( gl.TRIANGLE_FAN, i, 4 );
         gl.uniform4fv(fColor, flatten(black));
