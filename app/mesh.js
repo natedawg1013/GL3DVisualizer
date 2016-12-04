@@ -299,8 +299,6 @@ function render()
 
     gl.bindBuffer( gl.ARRAY_BUFFER, vBufferId );
 
-
-
     gl.bufferSubData( gl.ARRAY_BUFFER, 0, flatten(pointsArray));
 
 
