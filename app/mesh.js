@@ -4,6 +4,10 @@ var gl;
 var nRows = 50;
 var nColumns = 50;
 
+analyser.fftSize = 2048;
+var bufferLength = analyser.fftSize;
+var dataArray = new Uint8Array(bufferLength);
+
 // data for radial hat function: sin(Pi*r)/(Pi*r)
 
 var data = [];
@@ -17,7 +21,7 @@ for( var i = 0; i < nRows; ++i ) {
         
         // take care of 0/0 for r = 0
         
-        data[i][j] = Math.sin(i/5+Math.random()/10)*Math.cos(j/5+Math.random()/10)/2+Math.random()/20;
+        data[i][j] = 0.0;
     }
 }
 
@@ -70,8 +74,8 @@ window.onload = function init()
     // enable depth testing and polygon offset
     // so lines will be in front of filled triangles
     
-    gl.enable(gl.DEPTH_TEST);
-    gl.depthFunc(gl.LEQUAL);
+    //gl.enable(gl.DEPTH_TEST);
+    //gl.depthFunc(gl.LESS);
     gl.enable(gl.POLYGON_OFFSET_FILL);
     gl.polygonOffset(1.0, 2.0);
 
@@ -211,23 +215,71 @@ var count = 0;
 
 function render()
 {
+  analyser.getByteTimeDomainData(dataArray);
+  var newArray = new Array(64);
+  newArray.fill(0);
+  var factor = (dataArray.length)/64;
+  //console.log(factor);\
+  console.log(newArray[0]);
+  for(var i=0;i<dataArray.length;i++){
+    newArray[Math.floor(i/factor)]+=((dataArray[i]-127)/255);
+  } 
+  for(var i=0;i<64;i++){
+    newArray[i]/=factor;
+  }
+  //console.log(newArray[0]);
   var canvas = document.getElementById( "gl-canvas" );
   canvas.width  = window.innerWidth-20;
   canvas.height = window.innerHeight-150;
+  
+    data.shift();
+    data.push(newArray.slice(0,nColumns));
 
-  if(count==2){
-        data.push(data.shift());
-        count=0;
+    var data2  = data.map(function(arr) {
+    return arr.slice();
+});
+
+    function smoothArray( values, smoothing ){
+      for(var j=0;j<values[0].length;++j){
+          var value = values[0][j]; // start with the first input
+          for (var i=1, len=values.length; i<len; ++i){
+            var currentValue = values[i][j];
+            value += (currentValue - value) / smoothing;
+            values[i][j] = value;
+          }
+      }
     }
-    count++;
+
+    function remSS(values){
+        for(var i=0;i<values.length;i++){
+            var total=0;
+            var count=0;
+            for(var j=0;j<values[i].length;j++){
+                total+=values[i][j];
+                count++;
+            }
+            var avg=total/count;
+            //console.log(avg);
+            for(var j=0;j<values[i].length;j++){
+                values[i][j]-=avg;
+                values[i][j]*=5;
+            }
+        }
+    }
+
+    remSS(data2);
+
+    smoothArray(data2, 2);
+
+    //console.log(data2);
 
     pointsArray = [];
     for(var i=0; i<nRows-1; i++) {
         for(var j=0; j<nColumns-1;j++) {
-            pointsArray.push( vec4(2*i/nRows-1, data[i][j]*((i)/nRows)+Math.sin(Math.PI*(i/nRows))/2, 2*j/nColumns-1, camera.z));
-            pointsArray.push( vec4(2*(i+1)/nRows-1, data[i+1][j]*((i)/nRows)+Math.sin(Math.PI*((i+1)/nRows))/2, 2*j/nColumns-1, camera.z)); 
-            pointsArray.push( vec4(2*(i+1)/nRows-1, data[i+1][j+1]*((i)/nRows)+Math.sin(Math.PI*((i+1)/nRows))/2, 2*(j+1)/nColumns-1, camera.z));
-            pointsArray.push( vec4(2*i/nRows-1, data[i][j+1]*((i)/nRows)+Math.sin(Math.PI*(i/nRows))/2, 2*(j+1)/nColumns-1, camera.z) );
+            pointsArray.push( vec4(2*i/nRows-1, data2[i][j]*((i)/nRows)+Math.sin(Math.PI*(i/nRows))/2, 2*j/nColumns-1, camera.z));
+            pointsArray.push( vec4(2*(i+1)/nRows-1, data2[i+1][j]*((i)/nRows)+Math.sin(Math.PI*((i+1)/nRows))/2, 2*j/nColumns-1, camera.z)); 
+            pointsArray.push( vec4(2*(i+1)/nRows-1, data2[i+1][j+1]*((i)/nRows)+Math.sin(Math.PI*((i+1)/nRows))/2, 2*(j+1)/nColumns-1, camera.z));
+            pointsArray.push( vec4(2*i/nRows-1, data2[i][j+1]*((i)/nRows)+Math.sin(Math.PI*(i/nRows))/2, 2*(j+1)/nColumns-1, camera.z) );
         }
     }
 
@@ -251,11 +303,11 @@ function render()
     // and then as two black line loops
     
     for(var i=0; i<pointsArray.length; i+=4) { 
-
-        gl.uniform4fv(fColor, flatten(red));
-        gl.drawArrays( gl.TRIANGLE_FAN, i, 4 );
         gl.uniform4fv(fColor, flatten(black));
-        gl.drawArrays( gl.LINE_LOOP, i, 4 );
+        gl.drawArrays( gl.LINE_LOOP, pointsArray.length-4-i, 4 );
+        gl.uniform4fv(fColor, flatten(red));
+        gl.drawArrays( gl.TRIANGLE_FAN, pointsArray.length-4-i, 4 );
+        
     }
     
 
