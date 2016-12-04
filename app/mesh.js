@@ -113,7 +113,7 @@ window.onload = function init()
 
 function initControls(){
     // buttons for moving viewer and changing size
-    document.getElementById("Theta+").onclick = function(){theta += dr;};
+/*    document.getElementById("Theta+").onclick = function(){theta += dr;};
     document.getElementById("Theta-").onclick = function(){theta -= dr;};
     document.getElementById("Phi+").onclick = function(){phi += dr;};
     document.getElementById("Phi-").onclick = function(){phi -= dr;};
@@ -121,7 +121,7 @@ function initControls(){
     document.getElementById("Narrow").onclick = function(){left *= 1.1; right *= 1.1;};
     document.getElementById("Tall").onclick = function(){ytop  *= 0.9; bottom *= 0.9;};
     document.getElementById("Short").onclick = function(){ytop *= 1.1; bottom *= 1.1;};
-    //Keydown Event listener, binds arrow keys to rotation
+*/    //Keydown Event listener, binds arrow keys to rotation
     keyHandler();
 }
 function keyHandler(){

@@ -1,59 +1,145 @@
 
-<!DOCTYPE html>
-<html>
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <script language="javascript" src="js/processing.js"></script>
+    <script language="javascript" src="js/init.js"></script>
+    <script type="text/javascript" src="js/buffer-loader.js"></script>
+    <script type="text/javascript" src="../Common/webgl-utils.js"></script>
+    <script type="text/javascript" src="../Common/initShaders.js"></script>
+    <script type="text/javascript" src="../Common/MV.js"></script>
+    <script type="text/javascript" src="mesh.js"></script>
+  </head>
+  <body>
+    <style>
+      body { background: black; margin:0; padding:0;}
+      canvas {margin: 0 auto; display: block}
+    </style>
 
-<link rel="stylesheet" type="text/css" href="app.css" media="screen" />
+    <div><canvas id="fft" width="1400" height="300"></canvas></div>
+    <div>
+      <input id="audioFile" type="file" accept="audio/*">
+      <audio id="audioPlayer" controls="">
+      Your browser does not support the audio element.
+      </audio>
+    </div>
+    <script id="vertex-shader" type="x-shader/x-vertex">
 
-<p> </p>
-<button id = "Theta+">Increase theta</button>
-<button id = "Theta-">Decrease theta</button>
-<button id = "Phi+">Increase phi</button>
-<button id = "Phi-">Decrease phi</button>
-<p> </p>
-<button id = "Wide">Wider</button>
-<button id = "Narrow">Narrower</button>
-<button id = "Tall">Higher</button>
-<button id = "Short">Shorter</button>
+    attribute  vec4 vPosition;
 
+    uniform mat4 modelViewMatrix;
+    uniform mat4 projectionMatrix;
 
-<p> </p>
-<script id="vertex-shader" type="x-shader/x-vertex">
+    void main() 
+    {
+        gl_Position = projectionMatrix*modelViewMatrix*vPosition;
+    } 
+    </script>
 
-attribute  vec4 vPosition;
+    <script id="fragment-shader" type="x-shader/x-fragment">
 
-uniform mat4 modelViewMatrix;
-uniform mat4 projectionMatrix;
+    precision mediump float;
 
-void main() 
-{
-    gl_Position = projectionMatrix*modelViewMatrix*vPosition;
-} 
-</script>
+    uniform vec4 fColor;
 
-<script id="fragment-shader" type="x-shader/x-fragment">
+    void
+    main()
+    {
+        gl_FragColor = fColor;
+    }
+    </script>
+    <script>
+      var bufferLoader;
+      var context
 
-precision mediump float;
+      var temp;
+      var analyser;
+      var source1;
+      var finishedLoadingFlag = 0;
+      var audioFile = document.getElementById("audioFile");
+      var audioPlayer = document.getElementById("audioPlayer");
 
-uniform vec4 fColor;
+      try {
+        // Fix up for prefixing
+        window.AudioContext = window.AudioContext||window.webkitAudioContext;
+        context = new AudioContext();
+      }
+      catch(e) {
+        alert('Web Audio API is not supported in this browser');
+      }
 
-void
-main()
-{
-    gl_FragColor = fColor;
-}
-</script>
+      audioFile.onchange = function(){
+          var files = this.files;
+          var file = URL.createObjectURL(files[0]);
+          audioPlayer.src = file;
+      };
 
-<script type="text/javascript" src="../Common/webgl-utils.js"></script>
-<script type="text/javascript" src="../Common/initShaders.js"></script>
-<script type="text/javascript" src="../Common/MV.js"></script>
-<script type="text/javascript" src="mesh.js"></script>
+      //bufferLoader = new BufferLoader(context,['http://homepages.rpi.edu/~moraws/homeworks/termProject/resources/SO-EN.ogg',],finishedLoading);
+      //bufferLoader.load();
+      finishedLoading();
 
-<body>
+      function finishedLoading(bufferList) {
 
-<canvas id="gl-canvas" width="1000" height="1100">
+      //source1 = context.createBufferSource();
+      source1 = context.createMediaElementSource(audioPlayer);
+      analyser = context.createAnalyser();
+      //source1.buffer = bufferList[0];
+
+      source1.connect(analyser);
+      //audio_player.connect(analyser);
+      analyser.connect(context.destination);
+/*
+      if (!source1.start) {
+          source1.start = audioBufferSouceNode.noteOn //in old browsers use noteOn method
+          source1.stop = audioBufferSouceNode.noteOff //in old browsers use noteOff method
+      };
+      source1.start(0);*/
+      finishedLoadingFlag = 1;
+
+      }
+    </script>
+
+    <script target="#fft" type="application/processing">
+
+      void setup() {
+        size(1400, 300);
+        colorMode(HSB, 360, 100, 100);
+        strokeWeight(3);
+        frameRate(60);
+        //strokeCap(SQUARE);
+      }
+      void draw()
+      {
+        background(0);
+
+        if(finishedLoadingFlag)
+        {
+          var array = new Uint8Array(analyser.frequencyBinCount);
+          analyser.getByteFrequencyData(array);
+
+          //fill(0, 60);
+          //rect(0, 0, width, height);
+          for ( int i = 0; i < array.length/2; i += 3 ) {
+            if (3 * i > width) { break; }
+            var magnitude = array[i]/10;
+
+            // draw magnitudes
+            stroke((i) % 360, 60, constrain(magnitude * 6, 20, 100));
+            line(3*i, height, 3*i, height - magnitude * 16);
+
+            // draw peak indicators
+            stroke((i) % 360, 60, constrain(magnitude * 100, 50, 100));
+            line(3*i, height - (array[i]/10) * 16 - 1, 3*i, height - (array[i]/10) * 16);
+          }
+        }
+        /*
+        if (frameCount % 100 == 0 ) {
+          println(FRAME_RATE);
+        }
+        */
+      }
+    </script>
+  <canvas id="gl-canvas" width="1000" height="1000">
 Oops ... your browser doesn't support the HTML5 canvas element
 </canvas>
 
 
-</body>
-</html>
+</body></html>
