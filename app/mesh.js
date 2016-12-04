@@ -220,7 +220,7 @@ function render()
   newArray.fill(0);
   var factor = (dataArray.length)/64;
   //console.log(factor);\
-  console.log(newArray[0]);
+  //console.log(newArray[0]);
   for(var i=0;i<dataArray.length;i++){
     newArray[Math.floor(i/factor)]+=((dataArray[i]-127)/255);
   } 
@@ -276,10 +276,16 @@ function render()
     pointsArray = [];
     for(var i=0; i<nRows-1; i++) {
         for(var j=0; j<nColumns-1;j++) {
-            pointsArray.push( vec4(2*i/nRows-1, data2[i][j]*((i)/nRows)+Math.sin(Math.PI*(i/nRows))/2, 2*j/nColumns-1, camera.z));
-            pointsArray.push( vec4(2*(i+1)/nRows-1, data2[i+1][j]*((i)/nRows)+Math.sin(Math.PI*((i+1)/nRows))/2, 2*j/nColumns-1, camera.z)); 
-            pointsArray.push( vec4(2*(i+1)/nRows-1, data2[i+1][j+1]*((i)/nRows)+Math.sin(Math.PI*((i+1)/nRows))/2, 2*(j+1)/nColumns-1, camera.z));
-            pointsArray.push( vec4(2*i/nRows-1, data2[i][j+1]*((i)/nRows)+Math.sin(Math.PI*(i/nRows))/2, 2*(j+1)/nColumns-1, camera.z) );
+            //pointsArray.push( vec4(2*i/nRows-1,     data2[i][j]*((i)/nRows)+Math.sin(Math.PI*(i/nRows))/2,          2*j/nColumns-1,     camera.z));
+            //pointsArray.push( vec4(2*(i+1)/nRows-1, data2[i+1][j]*((i)/nRows)+Math.sin(Math.PI*((i+1)/nRows))/2,    2*j/nColumns-1,     camera.z)); 
+            //pointsArray.push( vec4(2*(i+1)/nRows-1, data2[i+1][j+1]*((i)/nRows)+Math.sin(Math.PI*((i+1)/nRows))/2,  2*(j+1)/nColumns-1, camera.z));
+            //pointsArray.push( vec4(2*i/nRows-1,     data2[i][j+1]*((i)/nRows)+Math.sin(Math.PI*(i/nRows))/2,        2*(j+1)/nColumns-1, camera.z));
+
+            pointsArray.push( vec4(2*i/nRows-1,     data[i][j],     2*j/nColumns-1,      camera.z));
+            pointsArray.push( vec4(2*(i+1)/nRows-1, data[i+1][j],   2*j/nColumns-1,      camera.z)); 
+            pointsArray.push( vec4(2*(i+1)/nRows-1, data[i+1][j+1], 2*(j+1)/nColumns-1,  camera.z));
+            pointsArray.push( vec4(2*i/nRows-1,     data[i][j+1],   2*(j+1)/nColumns-1,  camera.z));
+
         }
     }
 
