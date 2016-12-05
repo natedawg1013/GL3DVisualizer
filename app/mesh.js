@@ -9,7 +9,10 @@ analyser.fftSize = 2048;
 var bufferLength = analyser.fftSize;
 var dataArray = new Uint8Array(bufferLength);
 
-var data = new Array(nRows+smoothing*2);
+var buffer = [];
+var bufLen = 5;
+
+var data = new Array(nRows);
 data.fill(new Array(nColumns).fill(0));
 
 
@@ -202,13 +205,32 @@ function render()
     newArray[i]/=factor;
   }
   var canvas = document.getElementById( "gl-canvas" );
-  
-    data.shift();
-    data.push(newArray.slice(0,nColumns));
 
-    var data2  = data.map(function(arr) {
+  buffer.push(newArray);
+  if(buffer.length>bufLen) buffer.shift();
+  console.log(buffer.length);
+
+  var line = Array(buffer[0].length);
+  line.fill(0.0);
+
+  
+  for(var i=0;i<buffer[0].length;i++){
+    for(var j=0;j<buffer.length;j++){
+        line[i]+=buffer[j][i]/(Math.abs(j-buffer.length/2));
+    }
+    line[i]/=buffer.length;
+  }
+
+  data.shift();
+  data.push(line);
+  //console.log(line);
+  
+    //data.shift();
+    //data.push(newArray.slice(0,nColumns));
+
+    /*var data2  = data.map(function(arr) {
                             return arr.slice();
-                          });
+                          });*/
 
     function smoothArray( values, smoothing ){
       for(var j=0;j<values[0].length;++j){
@@ -250,24 +272,25 @@ function render()
             //console.log(avg);
             for(var j=0;j<values[i].length;j++){
                 values[i][j]-=avg;
-                values[i][j]*=5;
             }
         }
     }
 
-    //remSS(data2);
+    remSS(data);
+    var scale = 1.5;
+    var shift = 0.1;
 
     //smoothArray(data2, smoothing);
     //smoothArray2(data2, 3);
-    data2 = data2.slice(smoothing, data2.length-smoothing);
+    //data2 = data2.slice(smoothing, data2.length-smoothing);
 
     pointsArray = [];
     for(var i=0; i<nRows-1; i++) {
         for(var j=0; j<nColumns-1;j++) {
-            pointsArray.push( vec4(2*i/nRows-1,     data2[i][j],     2*j/nColumns-1,      camera.z));
-            pointsArray.push( vec4(2*(i+1)/nRows-1, data2[i+1][j],   2*j/nColumns-1,      camera.z)); 
-            pointsArray.push( vec4(2*(i+1)/nRows-1, data2[i+1][j+1], 2*(j+1)/nColumns-1,  camera.z));
-            pointsArray.push( vec4(2*i/nRows-1,     data2[i][j+1],   2*(j+1)/nColumns-1,  camera.z));
+            pointsArray.push( vec4(2*i/nRows-1,     shift+scale*data[i][j],     2*j/nColumns-1,      camera.z));
+            pointsArray.push( vec4(2*(i+1)/nRows-1, shift+scale*data[i+1][j],   2*j/nColumns-1,      camera.z)); 
+            pointsArray.push( vec4(2*(i+1)/nRows-1, shift+scale*data[i+1][j+1], 2*(j+1)/nColumns-1,  camera.z));
+            pointsArray.push( vec4(2*i/nRows-1,     shift+scale*data[i][j+1],   2*(j+1)/nColumns-1,  camera.z));
         }
     }
 
