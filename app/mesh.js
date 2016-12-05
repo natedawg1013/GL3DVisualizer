@@ -29,7 +29,7 @@ var far = 10;
 var radius = 6.0;
 //var theta  = -Math.PI/2;
 //var phi    = -Math.PI/4;
-console.log("var theta="+theta+";\nvar phi="+phi+";")
+//console.log("var theta="+theta+";\nvar phi="+phi+";")
 var theta=-1.57;
 var phi=-0.8727335374002834;
 var dr = 5.0 * Math.PI/180.0;
@@ -86,10 +86,10 @@ window.onload = function init()
     
     for(var i=0; i<nRows-1; i++) {
         for(var j=0; j<nColumns-1;j++) {
-            pointsArray.push( vec4(2*i/nRows-1, data[i][j], 2*j/nColumns-1, 1.0));
-            pointsArray.push( vec4(2*(i+1)/nRows-1, data[i+1][j], 2*j/nColumns-1, 1.0)); 
-            pointsArray.push( vec4(2*(i+1)/nRows-1, data[i+1][j+1], 2*(j+1)/nColumns-1, 1.0));
-            pointsArray.push( vec4(2*i/nRows-1, data[i][j+1], 2*(j+1)/nColumns-1, 1.0) );
+            pointsArray.push( [2*i/nRows-1, data[i][j], 2*j/nColumns-1, 1.0]);
+            pointsArray.push( [2*(i+1)/nRows-1, data[i+1][j], 2*j/nColumns-1, 1.0]); 
+            pointsArray.push( [2*(i+1)/nRows-1, data[i+1][j+1], 2*(j+1)/nColumns-1, 1.0]);
+            pointsArray.push( [2*i/nRows-1, data[i][j+1], 2*(j+1)/nColumns-1, 1.0] );
     }
 }
     //
@@ -298,10 +298,10 @@ function render()
     pointsArray = [];
     for(var i=0; i<nRows-1; i++) {
         for(var j=0; j<nColumns-1;j++) {
-            pointsArray.push( vec4(2*i/nRows-1,     shift+scale*data[i][j],     2*j/nColumns-1,      camera.z));
-            pointsArray.push( vec4(2*(i+1)/nRows-1, shift+scale*data[i+1][j],   2*j/nColumns-1,      camera.z)); 
-            pointsArray.push( vec4(2*(i+1)/nRows-1, shift+scale*data[i+1][j+1], 2*(j+1)/nColumns-1,  camera.z));
-            pointsArray.push( vec4(2*i/nRows-1,     shift+scale*data[i][j+1],   2*(j+1)/nColumns-1,  camera.z));
+            pointsArray.push( [2*i/nRows-1,     shift+scale*data[i][j],     2*j/nColumns-1,      camera.z]);
+            pointsArray.push( [2*(i+1)/nRows-1, shift+scale*data[i+1][j],   2*j/nColumns-1,      camera.z]); 
+            pointsArray.push( [2*(i+1)/nRows-1, shift+scale*data[i+1][j+1], 2*(j+1)/nColumns-1,  camera.z]);
+            pointsArray.push( [2*i/nRows-1,     shift+scale*data[i][j+1],   2*(j+1)/nColumns-1,  camera.z]);
         }
     }
 
@@ -312,10 +312,10 @@ function render()
 
     gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-    var eye = vec3( radius*Math.sin(theta)*Math.cos(phi) + dx, 
-                    radius*Math.sin(theta)*Math.sin(phi) + dy,
-                    radius*Math.cos(theta) + dz) ;
-    var at = vec3(dx, dy, dz);
+    var eye = [ radius*Math.sin(theta)*Math.cos(phi) + dx, 
+                radius*Math.sin(theta)*Math.sin(phi) + dy,
+                radius*Math.cos(theta) + dz] ;
+    var at = [dx, dy, dz];
 
     modelViewMatrix = lookAt( eye, at, up );
     projectionMatrix = perspective(camera.fovAngle, camera.aspect, camera.near, camera.far);
@@ -331,28 +331,14 @@ function render()
         //res =  Math.max.apply(pointsArray[m].map(function(o) {return o[2]}));
         //console.log(res);
     }*/
-    var col = new Array();
-    for(var i=0; i<pointsArray.length; i+=4) { 
-        for (var j = 0; j < pointsArray[i].length; j++){
-            col[j] = (pointsArray[pointsArray.length-4-i][j]);
-        }
-      //  console.log(col);
-        if (col[1] < 0.25){
-            col = rgbToHsl(0, col[1], 0);
-        }
-        else if (col[1] > 0.25){
-            col = col = rgbToHsl(col[0], col[1], col[1]/2);
-        }
-       // col = rgbToHsl(0, col[1], 0);
-       // console.log(col);
-        col[3] = 1.0;
-        
-        gl.uniform4fv(fColor, flatten(gridColor));
-        gl.drawArrays( gl.LINE_LOOP, pointsArray.length-4-i, 4 );
+    
+    for(var i=0; i<pointsArray.length; i+=4) {
         gl.uniform4fv(fColor, flatten(magenta));
         gl.drawArrays( gl.TRIANGLE_FAN, pointsArray.length-4-i, 4 );
-        
+        gl.uniform4fv(fColor, flatten(gridColor));        
+        gl.drawArrays( gl.LINE_LOOP, pointsArray.length-4-i, 4 );
     }
+    
     
 
     requestAnimFrame(render);
