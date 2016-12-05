@@ -15,6 +15,10 @@ var bufLen = 5;
 var data = new Array(nRows);
 data.fill(new Array(nColumns).fill(0));
 
+const black = vec4(0.0, 0.0, 0.0, 1.0);
+var magenta = vec4(1,1,0,1);  //magenta means use shader colors
+var gridColor = magenta;
+
 
 var pointsArray = [];
 
@@ -38,8 +42,6 @@ var camera = {
     z: .4
 }
 
-const black = vec4(0.0, 0.0, 0.0, 1.0);
-const red = vec4(1.0, 0.0, 0.0, 1.0);
 //var dx = 0.0, dy = 0.0, dz = 0.0;
 //console.log("var dx="+dx+", dy="+dy+", dz="+dz+";")
 var dx=-0.27497259058634904, dy=0.6095288320997905, dz=0.0008958460067709551;
@@ -116,6 +118,15 @@ window.onload = function init()
 }
 
 function initControls(){
+    document.getElementById("gridLines").onchange=function(checkbox){
+        console.log(checkbox);
+        if(checkbox.srcElement.checked){
+            gridColor=black;
+        }
+        else{
+            gridColor=magenta;
+        }
+    }
     keyHandler();
 }
 function keyHandler(){
@@ -193,6 +204,7 @@ function radToDeg(r){
 
 function render()
 {
+  gl.clearColor(.5,.5,.9,1.0)
   analyser.getByteTimeDomainData(dataArray);
   var newArray = new Array(nColumns);
   newArray.fill(0);
@@ -208,7 +220,6 @@ function render()
 
   buffer.push(newArray);
   if(buffer.length>bufLen) buffer.shift();
-  console.log(buffer.length);
 
   var line = Array(buffer[0].length);
   line.fill(0.0);
@@ -335,8 +346,8 @@ function render()
        // col = rgbToHsl(0, col[1], 0);
        // console.log(col);
         col[3] = 1.0;
-        var magenta = vec4(1,1,0,1);  //magenta means use shader colors
-        gl.uniform4fv(fColor, flatten(magenta));
+        
+        gl.uniform4fv(fColor, flatten(gridColor));
         gl.drawArrays( gl.LINE_LOOP, pointsArray.length-4-i, 4 );
         gl.uniform4fv(fColor, flatten(magenta));
         gl.drawArrays( gl.TRIANGLE_FAN, pointsArray.length-4-i, 4 );
