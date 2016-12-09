@@ -34,15 +34,27 @@ var radius = 6.0;
 //console.log("var theta="+theta+";\nvar phi="+phi+";")
 var theta=-1.57;
 var phi=-0.8727335374002834;
-var dr = 5.0 * Math.PI/180.0;
+var dr = 0.5 * Math.PI/180.0;
 
 var camera = {
-    near: -10,
+    near: 0,
     far: 5,
     aspect: 0.7,
     fovAngle: 45,
-    z: .4
+    z: 5.0
 }
+var controls = {
+    IDLE: 0,
+    UP: 1,
+    DOWN: 2,
+    LEFT: 3,
+    RIGHT: 4,
+    YAWUP: 5,
+    YAWDOWN: 6,
+    PITCHUP: 7,
+    PITCHDOWN: 8
+}
+var state = controls.IDLE;
 
 var vertices = [], normals = [];
 var indices = [];
@@ -108,9 +120,6 @@ window.onload = function init()
             normals.push([0,1,0]);
         }
     }
-
-    //console.log(flatten(vertices));
-
     for(var i=0; i<nRows-1; i++) {
         for(var j=0; j<nColumns-1;j++) {
             var index=i*nColumns+j;
@@ -119,10 +128,7 @@ window.onload = function init()
         }
     }
 
-    //indices=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15];
     indices=flatten(indices);
-
-    //console.log(indices);
 
     verticesBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, verticesBuffer);
@@ -136,32 +142,6 @@ window.onload = function init()
     gl.bindBuffer(gl.ARRAY_BUFFER, normalsBuffer);
     gl.bufferData(gl.ARRAY_BUFFER, flatten(normals), gl.STATIC_DRAW);
 
-    //console.log(new Uint16Array(flatten(indices)));
-   
-
-
-    
-    /*for(var i=0; i<nRows-1; i++) {
-        for(var j=0; j<nColumns-1;j++) {
-            pointsArray.push( [2*i/nRows-1, data[i][j], 2*j/nColumns-1, 1.0]);
-            pointsArray.push( [2*(i+1)/nRows-1, data[i+1][j], 2*j/nColumns-1, 1.0]); 
-            pointsArray.push( [2*(i+1)/nRows-1, data[i+1][j+1], 2*(j+1)/nColumns-1, 1.0]);
-            pointsArray.push( [2*i/nRows-1, data[i][j+1], 2*(j+1)/nColumns-1, 1.0] );
-        }
-    }*/
-    //
-    //  Load shaders and initialize attribute buffers
-    //
-    
-    
-
-    /*vBufferId = gl.createBuffer();
-    gl.bindBuffer( gl.ARRAY_BUFFER, vBufferId );
-    gl.bufferData( gl.ARRAY_BUFFER, flatten(pointsArray), gl.STATIC_DRAW);
-    
-    var vPosition = gl.getAttribLocation( program, "vPosition" );
-    gl.vertexAttribPointer( vPosition, 4, gl.FLOAT, false, 0, 0 );
-    gl.enableVertexAttribArray( vPosition );*/
     
     fColor = gl.getUniformLocation(program, "fColor");
 
@@ -228,8 +208,13 @@ function keyHandler(){
         if (event.deltaY > 0) camera.z += 0.1;
         else camera.z -= 0.1;        
     })
+    document.addEventListener('keyup', function(event)
+    {
+        state = controls.IDLE;
+    })
     document.addEventListener('keydown', function(event)
     {
+        
         event = event || window.event;
         if (event.ctrlKey)
         {
@@ -237,16 +222,20 @@ function keyHandler(){
             switch (event.keyCode)
             {
                 case 37 || 65: //left arrow
-                    theta -= dr;
+                    state = controls.YAWDOWN;
+                    //theta -= dr;
                     break;
                 case 39 || 68: //right arrow
-                    theta += dr;
+                    state = controls.YAWUP;
+                   // theta += dr;
                     break;
                 case 38 || 87: //up arrow
-                    phi += dr;
+                    state = controls.PITCHUP;
+                  //  phi += dr;
                     break;
                 case 40 || 83: //down arrow
-                    phi -= dr;
+                    state = controls.PITCHDOWN;
+                 //   phi -= dr;
                     break;
                 default:
                     break;
@@ -255,35 +244,31 @@ function keyHandler(){
         else
         {
             //up
-            if (event.keyCode == 38 || event.keyCode == 87)
-            {
-                event.preventDefault();
-                dx += Math.sin(theta) * 0.1 * Math.sin(phi);
-                dy -= Math.sin(theta) * 0.1 * Math.cos(phi);
-                dz += Math.sin(phi) * 0.1 * Math.cos(theta);
+            switch(event.keyCode){
+                case 38 || 87:
+                    event.preventDefault();
+                    state = controls.UP;
+
+                    break;
+                case 40 || 83:
+                    event.preventDefault();
+                    state = controls.DOWN;
+                    
+                    break;
+                case 37 || 65:
+                    event.preventDefault();
+                    state = controls.LEFT;
+
+                    break;
+                case 39 || 68:
+                    event.preventDefault();
+                    state = controls.RIGHT;
+
+                    break;
+
+
             }
-            //down
-            else if (event.keyCode == 40 || event.keyCode == 83)
-            {
-                event.preventDefault();
-                dx -= Math.sin(theta) * 0.1 * Math.sin(phi);
-                dy += Math.sin(theta) * 0.1 * Math.cos(phi);
-                dz -= Math.sin(phi) * 0.1 * Math.cos(theta);
-            }
-            //left
-            else if (event.keyCode == 37 || event.keyCode == 65)
-            {
-                event.preventDefault();
-                dx += Math.cos(theta) * 0.1;
-                dz += Math.sin(theta) * 0.1;
-            }
-            //right
-            else if (event.keyCode == 39 || event.keyCode == 68)
-            {
-                event.preventDefault();
-                dx -= Math.cos(theta) * 0.1;
-                dz -= Math.sin(theta) * 0.1;
-            }
+
        }
 });
 }
@@ -293,7 +278,42 @@ function degToRad(degrees){
 function radToDeg(r){
 	return r * 180 / Math.PI;
 }
-
+function renderControls(){
+    switch(state){
+        case controls.UP:
+            dx += Math.sin(theta) * 0.01 * Math.sin(phi);
+            dy -= Math.sin(theta) * 0.01 * Math.cos(phi);
+            dz += Math.sin(phi) * 0.01 * Math.cos(theta);
+            break;
+        case controls.DOWN:
+            dx -= Math.sin(theta) * 0.01 * Math.sin(phi);
+            dy += Math.sin(theta) * 0.01 * Math.cos(phi);
+            dz -= Math.sin(phi) * 0.01 * Math.cos(theta);
+            break;
+        case controls.LEFT:
+            dx += Math.cos(theta) * 0.01;
+            dz += Math.sin(theta) * 0.01;
+            break;
+        case controls.RIGHT:
+            dx -= Math.cos(theta) * 0.01;
+            dz -= Math.sin(theta) * 0.01;
+            break;
+        case controls.PITCHUP:
+            phi += dr;
+            break;
+        case controls.PITCHDOWN:
+            phi -= dr;
+            break;
+        case controls.YAWUP:
+            theta += dr;
+            break;
+        case controls.YAWDOWN:
+            theta -= dr;
+            break;
+        default:
+            break;
+      }
+}
 function render()
 {
   gl.clearColor(.5,.5,.9,1.0)
@@ -308,7 +328,7 @@ function render()
   for(var i=0;i<64;i++){
     newArray[i]/=factor;
   }
-
+  renderControls();
   buffer.push(newArray);
   if(buffer.length>bufLen) buffer.shift();
 
@@ -347,42 +367,6 @@ function render()
         }
     }
 
-  //console.log(line);
-  
-    //data.shift();
-    //data.push(newArray.slice(0,nColumns));
-
-    /*var data2  = data.map(function(arr) {
-                            return arr.slice();
-                          });*/
-
-    /*function smoothArray( values, smoothing ){
-      for(var j=0;j<values[0].length;++j){
-          var value = values[0][j]; // start with the first input
-          for (var i=1, len=values.length; i<len; ++i){
-            var currentValue = values[i][j];
-            value += (currentValue - value) / smoothing;
-            values[i][j] = value;
-          }
-      }
-    }
-
-    function smoothArray2( values, smoothing ){
-      for(var j=0;j<values.length;++j){
-          var value = values[j][0]; // start with the first input
-          for (var i=1, len=values[j].length; i<len; ++i){
-            var currentValue = values[j][i];
-            value += (currentValue - value) / (smoothing/2);
-            values[j][i] = value;
-          }
-          value = values[j][values[j].length-1];
-          for (var i=values[j].length-2; i>=0; --i){
-            var currentValue = values[j][i];
-            value += (currentValue - value) / (smoothing/2);
-            values[j][i] = value;
-          }
-      }
-    }*/
 
     function remSS(values){
         for(var i=0;i<values.length;i++){
@@ -404,20 +388,6 @@ function render()
     var scale = 1.5;
     var shift = 0.1;
 
-    //smoothArray(data2, smoothing);
-    //smoothArray2(data2, 3);
-    //data2 = data2.slice(smoothing, data2.length-smoothing);
-
-    /*pointsArray = [];
-    for(var i=0; i<nRows-1; i++) {
-        for(var j=0; j<nColumns-1;j++) {
-            pointsArray.push( [2*i/nRows-1,     shift+scale*data[i][j],     2*j/nColumns-1,      camera.z]);
-            pointsArray.push( [2*(i+1)/nRows-1, shift+scale*data[i+1][j],   2*j/nColumns-1,      camera.z]); 
-            pointsArray.push( [2*(i+1)/nRows-1, shift+scale*data[i+1][j+1], 2*(j+1)/nColumns-1,  camera.z]);
-            pointsArray.push( [2*i/nRows-1,     shift+scale*data[i][j+1],   2*(j+1)/nColumns-1,  camera.z]);
-        }
-    }*/
-
     /*gl.bindBuffer( gl.ARRAY_BUFFER, vBufferId );
 
     gl.bufferSubData( gl.ARRAY_BUFFER, 0, flatten(pointsArray));
@@ -425,9 +395,9 @@ function render()
 
     gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);*/
 
-    var eye = [ radius*Math.sin(theta)*Math.cos(phi) + dx, 
-                radius*Math.sin(theta)*Math.sin(phi) + dy,
-                radius*Math.cos(theta) + dz] ;
+    var eye = [ camera.z*Math.sin(theta)*Math.cos(phi) + dx, 
+                camera.z*Math.sin(theta)*Math.sin(phi) + dy,
+                camera.z*Math.cos(theta) + dz] ;
     var at = [dx, dy, dz];
 
     modelViewMatrix = lookAt( eye, at, up );
@@ -450,15 +420,7 @@ function render()
 
     gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_SHORT, 0);
-    //gl.drawElements(gl.POINTS, indices.length, gl.UNSIGNED_SHORT, 0);
-    
-    /*
-    for(var i=0; i<pointsArray.length; i+=4) {
-        gl.uniform4fv(fColor, flatten(magenta));
-        gl.drawArrays( gl.TRIANGLE_FAN, pointsArray.length-4-i, 4 );
-        gl.uniform4fv(fColor, flatten(gridColor));        
-        gl.drawArrays( gl.LINE_LOOP, pointsArray.length-4-i, 4 );
-    }*/
+
 
     requestAnimFrame(render);
 }
