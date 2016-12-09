@@ -1,7 +1,7 @@
 
 var gl;
 
-var smoothing = 8;
+var smoothing = 4;
 var nRows = 64;
 var nColumns = 64;
 
@@ -19,6 +19,8 @@ const black = vec4(0.0, 0.0, 0.0, 1.0);
 var magenta = vec4(1,1,0,1);  //magenta means use shader colors
 var gridColor = magenta;
 
+
+var vertexPositionAttribute;
 
 var pointsArray = [];
 
@@ -41,6 +43,11 @@ var camera = {
     fovAngle: 45,
     z: .4
 }
+
+var vertices = [];
+var indices = [];
+var indexBuffer;
+var verticesBuffer;
 
 //var dx = 0.0, dy = 0.0, dz = 0.0;
 //console.log("var dx="+dx+", dy="+dy+", dz="+dz+";")
@@ -83,31 +90,75 @@ window.onload = function init()
 
 // vertex array of nRows*nColumns quadrilaterals 
 // (two triangles/quad) from data
-    
+
+    var program = initShaders( gl, "mountain-terrain-shader", "fragment-shader" );
+    gl.useProgram( program );
+
+    vertexPositionAttribute = gl.getAttribLocation(program, "vPosition");
+    gl.enableVertexAttribArray(vertexPositionAttribute);
+
+
+
+    for(var i=0; i<nRows; i++) {
+        for(var j=0; j<nColumns;j++) {
+            var x=(i+1/2-nColumns/2)/(nColumns-1)*2;
+            var z=(j+1/2-nRows/2)/(nRows-1)*2;
+            vertices.push([x, 0, z]);
+        }
+    }
+
+    //console.log(flatten(vertices));
+
     for(var i=0; i<nRows-1; i++) {
+        for(var j=0; j<nColumns-1;j++) {
+            var index=i*nColumns+j;
+            indices.push([index, index+1, index+nColumns]);
+            indices.push([index+1, index+nColumns+1, index+nColumns]);
+        }
+    }
+
+    //indices=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15];
+    indices=flatten(indices);
+
+    //console.log(indices);
+
+    verticesBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, verticesBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, flatten(vertices), gl.STATIC_DRAW);
+
+    indexBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(flatten(indices)), gl.STATIC_DRAW);
+    //console.log(new Uint16Array(flatten(indices)));
+   
+
+
+    
+    /*for(var i=0; i<nRows-1; i++) {
         for(var j=0; j<nColumns-1;j++) {
             pointsArray.push( [2*i/nRows-1, data[i][j], 2*j/nColumns-1, 1.0]);
             pointsArray.push( [2*(i+1)/nRows-1, data[i+1][j], 2*j/nColumns-1, 1.0]); 
             pointsArray.push( [2*(i+1)/nRows-1, data[i+1][j+1], 2*(j+1)/nColumns-1, 1.0]);
             pointsArray.push( [2*i/nRows-1, data[i][j+1], 2*(j+1)/nColumns-1, 1.0] );
-    }
-}
+        }
+    }*/
     //
     //  Load shaders and initialize attribute buffers
     //
-    var program = initShaders( gl, "mountain-terrain-shader", "fragment-shader" );
-    gl.useProgram( program );
+    
     
 
-    vBufferId = gl.createBuffer();
+    /*vBufferId = gl.createBuffer();
     gl.bindBuffer( gl.ARRAY_BUFFER, vBufferId );
     gl.bufferData( gl.ARRAY_BUFFER, flatten(pointsArray), gl.STATIC_DRAW);
     
     var vPosition = gl.getAttribLocation( program, "vPosition" );
     gl.vertexAttribPointer( vPosition, 4, gl.FLOAT, false, 0, 0 );
-    gl.enableVertexAttribArray( vPosition );
+    gl.enableVertexAttribArray( vPosition );*/
     
     fColor = gl.getUniformLocation(program, "fColor");
+
+     gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
  
     modelViewMatrixLoc = gl.getUniformLocation( program, "modelViewMatrix" );
     projectionMatrixLoc = gl.getUniformLocation( program, "projectionMatrix" );
@@ -119,7 +170,7 @@ window.onload = function init()
 
 function initControls(){
     document.getElementById("gridLines").onchange=function(checkbox){
-        console.log(checkbox);
+        //console.log(checkbox);
         if(checkbox.srcElement.checked){
             gridColor=black;
         }
@@ -216,7 +267,6 @@ function render()
   for(var i=0;i<64;i++){
     newArray[i]/=factor;
   }
-  var canvas = document.getElementById( "gl-canvas" );
 
   buffer.push(newArray);
   if(buffer.length>bufLen) buffer.shift();
@@ -232,8 +282,19 @@ function render()
     line[i]/=buffer.length;
   }
 
-  data.shift();
-  data.push(line);
+  //data.shift();
+  //data.push(line);
+
+  for(var i=0;i<nRows-1;++i){
+    for(var j=0;j<nColumns;j++){
+        vertices[nColumns*(i)+j][1]=vertices[nColumns*(i+1)+j][1];
+    }
+  }
+    for(var j=0;j<nColumns;j++){
+        //console.log(vertices[j][1]);
+        vertices[nColumns*(nRows-1)+j][1]=line[j];
+    }
+
   //console.log(line);
   
     //data.shift();
@@ -243,7 +304,7 @@ function render()
                             return arr.slice();
                           });*/
 
-    function smoothArray( values, smoothing ){
+    /*function smoothArray( values, smoothing ){
       for(var j=0;j<values[0].length;++j){
           var value = values[0][j]; // start with the first input
           for (var i=1, len=values.length; i<len; ++i){
@@ -269,7 +330,7 @@ function render()
             values[j][i] = value;
           }
       }
-    }
+    }*/
 
     function remSS(values){
         for(var i=0;i<values.length;i++){
@@ -295,7 +356,7 @@ function render()
     //smoothArray2(data2, 3);
     //data2 = data2.slice(smoothing, data2.length-smoothing);
 
-    pointsArray = [];
+    /*pointsArray = [];
     for(var i=0; i<nRows-1; i++) {
         for(var j=0; j<nColumns-1;j++) {
             pointsArray.push( [2*i/nRows-1,     shift+scale*data[i][j],     2*j/nColumns-1,      camera.z]);
@@ -303,14 +364,14 @@ function render()
             pointsArray.push( [2*(i+1)/nRows-1, shift+scale*data[i+1][j+1], 2*(j+1)/nColumns-1,  camera.z]);
             pointsArray.push( [2*i/nRows-1,     shift+scale*data[i][j+1],   2*(j+1)/nColumns-1,  camera.z]);
         }
-    }
+    }*/
 
-    gl.bindBuffer( gl.ARRAY_BUFFER, vBufferId );
+    /*gl.bindBuffer( gl.ARRAY_BUFFER, vBufferId );
 
     gl.bufferSubData( gl.ARRAY_BUFFER, 0, flatten(pointsArray));
 
 
-    gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);*/
 
     var eye = [ radius*Math.sin(theta)*Math.cos(phi) + dx, 
                 radius*Math.sin(theta)*Math.sin(phi) + dy,
@@ -331,15 +392,23 @@ function render()
         //res =  Math.max.apply(pointsArray[m].map(function(o) {return o[2]}));
         //console.log(res);
     }*/
+
+    //console.log(flatten(indices));
+    gl.uniform4fv(fColor, flatten(magenta));
+    gl.bindBuffer(gl.ARRAY_BUFFER, verticesBuffer);
+    gl.bufferSubData(gl.ARRAY_BUFFER, 0, flatten(vertices));
+    gl.vertexAttribPointer(vertexPositionAttribute, 3, gl.FLOAT, false, 0, 0);
+    gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_SHORT, 0);
+    //gl.drawElements(gl.POINTS, indices.length, gl.UNSIGNED_SHORT, 0);
     
+    /*
     for(var i=0; i<pointsArray.length; i+=4) {
         gl.uniform4fv(fColor, flatten(magenta));
         gl.drawArrays( gl.TRIANGLE_FAN, pointsArray.length-4-i, 4 );
         gl.uniform4fv(fColor, flatten(gridColor));        
         gl.drawArrays( gl.LINE_LOOP, pointsArray.length-4-i, 4 );
-    }
-    
-    
+    }*/
 
     requestAnimFrame(render);
 }
