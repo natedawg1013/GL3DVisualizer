@@ -20,7 +20,7 @@ var magenta = vec4(1,1,0,1);  //magenta means use shader colors
 var gridColor = magenta;
 
 
-var vertexPositionAttribute;
+var vertexPositionAttribute, normalAttribute;
 
 var pointsArray = [];
 
@@ -97,7 +97,8 @@ window.onload = function init()
     vertexPositionAttribute = gl.getAttribLocation(program, "vPosition");
     gl.enableVertexAttribArray(vertexPositionAttribute);
 
-
+    normalAttribute = gl.getAttribLocation(program, "vNormal");
+    gl.enableVertexAttribArray(normalAttribute);
 
     for(var i=0; i<nRows; i++) {
         for(var j=0; j<nColumns;j++) {
@@ -114,6 +115,12 @@ window.onload = function init()
             var index=i*nColumns+j;
             indices.push([index, index+1, index+nColumns]);
             indices.push([index+1, index+nColumns+1, index+nColumns]);
+            normals.push([0,1,0]);
+            normals.push([0,1,0]);
+            normals.push([0,1,0]);
+            normals.push([0,1,0]);
+            normals.push([0,1,0]);
+            normals.push([0,1,0]);
         }
     }
 
@@ -172,8 +179,42 @@ window.onload = function init()
     render();
  
 }
+function calculateSurfaceNormals(a, b, c)
+{
+            var normal, u ,v;
+            u = subtractVectors(a, b);
+            v = subtractVectors(a, c); 
+            normal = cross(u, v);
+            return normal;
+    }
+function crossVec(u, v)
+{
+    var normal = [];
+    normal[0] = (u[1] * v[2]) - (u[2] * v[1]);
+    normal[1] = (u[2] * v[0]) - (u[0] * v[2]);
+    normal[2] = (u[0] * v[1]) - (u[1] * v[0]);
+    return normal;
+}
+function subtractVectors(a,b)
+{
+    var res = new Array();
+    for (var i = 0; i < a.length; i++){
+        res[i] = a[i] - b[i];
+    }
+    //console.log(res);
+    return res;
+}
+function normalizeArray(arr)
+{
+    var magnitude = 0.0;
+    for (var i = 0; i < arr.length; i++){
+        magnitude += arr[i];
+    }
+    magnitude /= Math.sqrt(magnitude);
 
-function initControls(){
+}
+function initControls()
+{
     document.getElementById("gridLines").onchange=function(checkbox){
         //console.log(checkbox);
         if(checkbox.srcElement.checked){
@@ -293,13 +334,22 @@ function render()
   for(var i=0;i<nRows-1;++i){
     for(var j=0;j<nColumns;j++){
         vertices[nColumns*(i)+j][1]=vertices[nColumns*(i+1)+j][1];
+        
     }
   }
     for(var j=0;j<nColumns;j++){
         //console.log(vertices[j][1]);
         vertices[nColumns*(nRows-1)+j][1]=line[j];
     }
-
+    normals = [];
+    for (var k=0;k < indices.length;k+=3){
+        var v1 = vertices[indices[k]],
+            v2 = vertices[indices[k+1]],
+            v3 = vertices[indices[k+2]];
+        normals.push(calculateSurfaceNormals(v1,v2,v3));
+        normals.push(calculateSurfaceNormals(v1,v2,v3));
+        normals.push(calculateSurfaceNormals(v1,v2,v3));
+    }
   //console.log(line);
   
     //data.shift();
@@ -391,18 +441,16 @@ function render()
     
     // draw each quad as two filled red triangles
     // and then as two black line loops
-    var currentMax = 0;
-   /* for (var m = 0; m < pointsArray.length; m++){
-        
-        //res =  Math.max.apply(pointsArray[m].map(function(o) {return o[2]}));
-        //console.log(res);
-    }*/
-
     //console.log(flatten(indices));
     gl.uniform4fv(fColor, flatten(magenta));
     gl.bindBuffer(gl.ARRAY_BUFFER, verticesBuffer);
     gl.bufferSubData(gl.ARRAY_BUFFER, 0, flatten(vertices));
     gl.vertexAttribPointer(vertexPositionAttribute, 3, gl.FLOAT, false, 0, 0);
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, normalsBuffer);
+    gl.bufferSubData(gl.ARRAY_BUFFER, 0, flatten(normals));
+    gl.vertexAttribPointer(normalAttribute, 3, gl.FLOAT, false, 0, 0);
+
     gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_SHORT, 0);
     //gl.drawElements(gl.POINTS, indices.length, gl.UNSIGNED_SHORT, 0);
