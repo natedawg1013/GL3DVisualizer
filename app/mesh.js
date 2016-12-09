@@ -44,10 +44,10 @@ var camera = {
     z: .4
 }
 
-var vertices = [];
+var vertices = [], normals = [];
 var indices = [];
 var indexBuffer;
-var verticesBuffer;
+var verticesBuffer, normalsBuffer;
 
 //var dx = 0.0, dy = 0.0, dz = 0.0;
 //console.log("var dx="+dx+", dy="+dy+", dz="+dz+";")
@@ -129,6 +129,11 @@ window.onload = function init()
     indexBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
     gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(flatten(indices)), gl.STATIC_DRAW);
+
+    normalsBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, normalsBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, flatten(normals), gl.STATIC_DRAW);
+
     //console.log(new Uint16Array(flatten(indices)));
    
 
