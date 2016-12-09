@@ -105,6 +105,7 @@ window.onload = function init()
             var x=(i+1/2-nColumns/2)/(nColumns-1)*2;
             var z=(j+1/2-nRows/2)/(nRows-1)*2;
             vertices.push([x, 0, z]);
+            normals.push([0,1,0]);
         }
     }
 
@@ -114,13 +115,7 @@ window.onload = function init()
         for(var j=0; j<nColumns-1;j++) {
             var index=i*nColumns+j;
             indices.push([index, index+1, index+nColumns]);
-            indices.push([index+1, index+nColumns+1, index+nColumns]);
-            normals.push([0,1,0]);
-            normals.push([0,1,0]);
-            normals.push([0,1,0]);
-            normals.push([0,1,0]);
-            normals.push([0,1,0]);
-            normals.push([0,1,0]);
+            indices.push([index+1, index+nColumns+1, index+nColumns]);            
         }
     }
 
@@ -341,15 +336,17 @@ function render()
         //console.log(vertices[j][1]);
         vertices[nColumns*(nRows-1)+j][1]=line[j];
     }
-    normals = [];
+    var vertexFlag= new Array(vertices.length);
     for (var k=0;k < indices.length;k+=3){
         var v1 = vertices[indices[k]],
             v2 = vertices[indices[k+1]],
             v3 = vertices[indices[k+2]];
-        normals.push(calculateSurfaceNormals(v1,v2,v3));
-        normals.push(calculateSurfaceNormals(v1,v2,v3));
-        normals.push(calculateSurfaceNormals(v1,v2,v3));
+        if(vertexFlag[indices[k]]!=1){
+            normals[indices[k]]=calculateSurfaceNormals(v1,v2,v3);
+            vertexFlag[indices[k]]=1;
+        }
     }
+
   //console.log(line);
   
     //data.shift();
