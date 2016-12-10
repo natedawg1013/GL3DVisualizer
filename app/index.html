@@ -16,12 +16,49 @@
     </style>
 
     <div>
-      <input id="audioFile" type="file" accept="audio/*">
-      <audio id="audioPlayer" controls="">
-      Your browser does not support the audio element.
-      </audio>
-      <input id="gridLines" type="checkbox">
-      <label for="gridLines" style="color:white">Grid Lines</label>
+      <div style="float:left;">
+        <input id="audioFile" type="file" accept="audio/*">
+        <audio id="audioPlayer" controls="">
+        Your browser does not support the audio element.
+        </audio>
+      </div>
+      <div style="float:left;">
+        <input id="gridCheck" type="checkbox">
+        <label for="gridCheck" style="color:white">Grid Lines</label><br/>
+        <input id="gridColor" type="checkbox">
+        <label for="gridColor" style="color:white">Color</label>
+      </div>
+      <div style="float:left;">
+        <input id="groundCheck" type="checkbox">
+        <label for="groundCheck" style="color:white">Ground</label><br/>
+        <input id="groundColor" type="checkbox">
+        <label for="groundColor" style="color:white">Color</label>
+      </div>
+      <div style="float:left;">
+        <input id="pointsCheck" type="checkbox">
+        <label for="pointsCheck" style="color:white">Points</label><br/>
+        <input id="pointsColor" type="checkbox">
+        <label for="pointsColor" style="color:white">Color</label>
+      </div>
+      <div style="float:left;">
+        <input id="lightingCheck" type="checkbox">
+        <label for="lightingCheck" style="color:white">Lighting</label><br/>
+      </div>
+
+
+        <!--<input id="groundCheck" type="checkbox">
+        <label for="groundCheck" style="color:white">Ground</label>
+        <input id="pointsCheck" type="checkbox">
+        <label for="pointsCheck" style="color:white">Points</label>
+        <br/>
+        <input id="gridLines" type="checkbox">
+        <label for="gridLines" style="color:white">Grid Lines</label>
+        <input id="groundCheck" type="checkbox">
+        <label for="groundCheck" style="color:white">Ground</label>
+        <input id="pointsCheck" type="checkbox">
+        <label for="pointsCheck" style="color:white">Points</label>
+        </div>-->
+
     </div>
     <script id="mountain-terrain-shader" type="x-shader/x-vertex">
 
@@ -29,6 +66,7 @@
     attribute vec3 vNormal;
     uniform mat4 modelViewMatrix;
     uniform mat4 projectionMatrix;
+    uniform bool ground;
 
     varying vec4 color;
     varying vec3 norm;
@@ -50,15 +88,19 @@
           norm = normalize(vNormal);
           
           vec4 position = pos;
-          position.y=position.y*pow((position.x+1.0)/2.0,0.3);
+          position.y=position.y*pow((-position.x+1.0)/2.0,0.3);
           position.y += sin((position.x+1.0)*3.14159/2.0)/4.0;
           gl_Position = projectionMatrix*modelViewMatrix*position;
+          if(!ground){
+            gl_Position.y+=0.02;
+          }
     } 
     </script>
 
     <script id="fragment-shader" type="x-shader/x-fragment">
 
     precision mediump float;
+    uniform bool lighting;
 
     uniform vec4 fColor;
     varying vec4 color;
@@ -70,10 +112,12 @@
         vec4 magenta = vec4(1.0,1.0,0.0,1.0);
         if(fColor==magenta) gl_FragColor = color;
         else gl_FragColor = fColor;
-        float factor = dot(norm, normalize(vec3(-1,0,1)));
-        gl_FragColor.x *= factor;
-        gl_FragColor.y *= factor;
-        gl_FragColor.z *= factor;
+        float factor = dot(norm, normalize(vec3(1,1,1)));
+        if(lighting){
+          gl_FragColor.x *= factor;
+          gl_FragColor.y *= factor;
+          gl_FragColor.z *= factor;
+        }
     }
     </script>
     <script>

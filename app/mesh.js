@@ -12,15 +12,25 @@ var dataArray = new Uint8Array(bufferLength);
 var buffer = [];
 var bufLen = 5;
 
+var ground=true;
+var groundColor=true;
+var grid=false;
+var gridColor=false;
+var points=false;
+var pointsColor=false;
+var lighting=false;
+var squareMesh=false;
+
 var data = new Array(nRows);
 data.fill(new Array(nColumns).fill(0));
 
 const black = vec4(0.0, 0.0, 0.0, 1.0);
 var magenta = vec4(1,1,0,1);  //magenta means use shader colors
-var gridColor = magenta;
 
 
 var vertexPositionAttribute, normalAttribute;
+
+var program;
 
 var pointsArray = [];
 
@@ -32,16 +42,16 @@ var radius = 6.0;
 //var theta  = -Math.PI/2;
 //var phi    = -Math.PI/4;
 //console.log("var theta="+theta+";\nvar phi="+phi+";")
-var theta=-1.57;
-var phi=-0.8727335374002834;
+var theta=1.57;
+var phi=0.25;
 var dr = 0.5 * Math.PI/180.0;
 
 var camera = {
-    near: 0,
-    far: 5,
+    near: 0.1,
+    far: 15,
     aspect: 0.7,
     fovAngle: 45,
-    z: 5.0
+    z: 3.0
 }
 var controls = {
     IDLE: 0,
@@ -57,13 +67,13 @@ var controls = {
 var state = controls.IDLE;
 
 var vertices = [], normals = [];
-var indices = [];
-var indexBuffer;
+var indices = [], meshIndices = [];
+var indexBuffer, meshIndexBuffer;
 var verticesBuffer, normalsBuffer;
 
 //var dx = 0.0, dy = 0.0, dz = 0.0;
 //console.log("var dx="+dx+", dy="+dy+", dz="+dz+";")
-var dx=-0.27497259058634904, dy=0.6095288320997905, dz=0.0008958460067709551;
+var dx=-0.275, dy=0.61, dz=0;
 
 const up = vec3(0.0, 1.0, 0.0);
 
@@ -82,7 +92,14 @@ window.onresize = function resize(){
 window.onload = function init()
 {
     var canvas = document.getElementById( "gl-canvas" );
-    
+    document.getElementById("gridCheck").checked=grid;
+    document.getElementById("groundCheck").checked=ground;
+    document.getElementById("pointsCheck").checked=points;
+    document.getElementById("gridColor").checked=gridColor;
+    document.getElementById("groundColor").checked=groundColor;
+    document.getElementById("pointsColor").checked=pointsColor;
+    document.getElementById("lightingCheck").checked=lighting;
+
     gl = WebGLUtils.setupWebGL( canvas );
     if ( !gl ) { alert( "WebGL isn't available" ); }
     canvas.width=window.innerWidth-50;
@@ -95,15 +112,15 @@ window.onload = function init()
     // enable depth testing and polygon offset
     // so lines will be in front of filled triangles
     
-    //gl.enable(gl.DEPTH_TEST);
+    gl.enable(gl.DEPTH_TEST);
     //gl.depthFunc(gl.LESS);
-    gl.enable(gl.POLYGON_OFFSET_FILL);
+    //gl.enable(gl.POLYGON_OFFSET_FILL);
     gl.polygonOffset(1.0, 2.0);
 
 // vertex array of nRows*nColumns quadrilaterals 
 // (two triangles/quad) from data
 
-    var program = initShaders( gl, "mountain-terrain-shader", "fragment-shader" );
+    program = initShaders( gl, "mountain-terrain-shader", "fragment-shader" );
     gl.useProgram( program );
 
     vertexPositionAttribute = gl.getAttribLocation(program, "vPosition");
@@ -128,7 +145,23 @@ window.onload = function init()
         }
     }
 
+    for(var i=0; i<nRows-1; i++) {
+        for(var j=0; j<nColumns-1;j++) {
+            var index=i*nColumns+j;
+            indices.push([index, index+1, index+nColumns]);
+            indices.push([index+1, index+nColumns+1, index+nColumns]);            
+        }
+    }
+
+    for(var i=0; i<nRows-1; i++) {
+        for(var j=0; j<nColumns-1;j++) {
+            var index=i*nColumns+j;
+            meshIndices.push([index,index+nColumns, index+nColumns+1,  index+1]);      
+        }
+    }
+
     indices=flatten(indices);
+    meshIndices = flatten(meshIndices);
 
     verticesBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, verticesBuffer);
@@ -138,14 +171,16 @@ window.onload = function init()
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
     gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(flatten(indices)), gl.STATIC_DRAW);
 
+    meshIndexBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, meshIndexBuffer);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(flatten(meshIndices)), gl.STATIC_DRAW);
+
     normalsBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, normalsBuffer);
     gl.bufferData(gl.ARRAY_BUFFER, flatten(normals), gl.STATIC_DRAW);
 
     
     fColor = gl.getUniformLocation(program, "fColor");
-
-     gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
  
     modelViewMatrixLoc = gl.getUniformLocation( program, "modelViewMatrix" );
     projectionMatrixLoc = gl.getUniformLocation( program, "projectionMatrix" );
@@ -156,12 +191,12 @@ window.onload = function init()
 }
 function calculateSurfaceNormals(a, b, c)
 {
-            var normal, u ,v;
-            u = subtractVectors(a, b);
-            v = subtractVectors(a, c); 
-            normal = cross(u, v);
-            return normal;
-    }
+    var normal, u ,v;
+    u = subtractVectors(a, b);
+    v = subtractVectors(a, c); 
+    normal = cross(u, v);
+    return normal;
+}
 function crossVec(u, v)
 {
     var normal = [];
@@ -190,14 +225,33 @@ function normalizeArray(arr)
 }
 function initControls()
 {
-    document.getElementById("gridLines").onchange=function(checkbox){
-        //console.log(checkbox);
-        if(checkbox.srcElement.checked){
-            gridColor=black;
-        }
-        else{
-            gridColor=magenta;
-        }
+    document.getElementById("gridCheck").onchange=function(checkbox){
+        if(checkbox.srcElement.checked) grid=true;
+        else grid=false;
+    }
+    document.getElementById("groundCheck").onchange=function(checkbox){
+        if(checkbox.srcElement.checked) ground=true;
+        else ground=false;
+    }
+    document.getElementById("pointsCheck").onchange=function(checkbox){
+        if(checkbox.srcElement.checked) points=true;
+        else points=false;
+    }
+    document.getElementById("gridColor").onchange=function(checkbox){
+        if(checkbox.srcElement.checked) gridColor=true;
+        else gridColor=false;
+    }
+    document.getElementById("groundColor").onchange=function(checkbox){
+        if(checkbox.srcElement.checked) groundColor=true;
+        else groundColor=false;
+    }
+    document.getElementById("pointsColor").onchange=function(checkbox){
+        if(checkbox.srcElement.checked) pointsColor=true;
+        else pointsColor=false;
+    }
+    document.getElementById("lightingCheck").onchange=function(checkbox){
+        if(checkbox.srcElement.checked) lighting=true;
+        else lighting=false;
     }
     keyHandler();
 }
@@ -346,25 +400,25 @@ function render()
   //data.shift();
   //data.push(line);
 
-  for(var i=0;i<nRows-1;++i){
+  for(var i=nRows-2;i>=0;--i){
     for(var j=0;j<nColumns;j++){
-        vertices[nColumns*(i)+j][1]=vertices[nColumns*(i+1)+j][1];
+        vertices[nColumns*(i+1)+j][1]=vertices[nColumns*(i)+j][1];
         
     }
   }
     for(var j=0;j<nColumns;j++){
         //console.log(vertices[j][1]);
-        vertices[nColumns*(nRows-1)+j][1]=line[j];
+        vertices[j][1]=line[j];
     }
     var vertexFlag= new Array(vertices.length);
     for (var k=0;k < indices.length;k+=3){
         var v1 = vertices[indices[k]],
             v2 = vertices[indices[k+1]],
             v3 = vertices[indices[k+2]];
-        if(vertexFlag[indices[k]]!=1){
+        //if(vertexFlag[indices[k]]!=1){
             normals[indices[k]]=calculateSurfaceNormals(v1,v2,v3);
             vertexFlag[indices[k]]=1;
-        }
+        //}
     }
 
 
@@ -388,12 +442,6 @@ function render()
     var scale = 1.5;
     var shift = 0.1;
 
-    /*gl.bindBuffer( gl.ARRAY_BUFFER, vBufferId );
-
-    gl.bufferSubData( gl.ARRAY_BUFFER, 0, flatten(pointsArray));
-
-
-    gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);*/
 
     var eye = [ camera.z*Math.sin(theta)*Math.cos(phi) + dx, 
                 camera.z*Math.sin(theta)*Math.sin(phi) + dy,
@@ -406,21 +454,55 @@ function render()
     gl.uniformMatrix4fv( modelViewMatrixLoc, false, flatten(modelViewMatrix) );
     gl.uniformMatrix4fv( projectionMatrixLoc, false, flatten(projectionMatrix) );
     
-    // draw each quad as two filled red triangles
+    // draw each quad as two filled triangles
     // and then as two black line loops
     //console.log(flatten(indices));
-    gl.uniform4fv(fColor, flatten(magenta));
     gl.bindBuffer(gl.ARRAY_BUFFER, verticesBuffer);
     gl.bufferSubData(gl.ARRAY_BUFFER, 0, flatten(vertices));
     gl.vertexAttribPointer(vertexPositionAttribute, 3, gl.FLOAT, false, 0, 0);
-
     gl.bindBuffer(gl.ARRAY_BUFFER, normalsBuffer);
     gl.bufferSubData(gl.ARRAY_BUFFER, 0, flatten(normals));
-    gl.vertexAttribPointer(normalAttribute, 3, gl.FLOAT, false, 0, 0);
+    gl.vertexAttribPointer(normalAttribute, 3, gl.FLOAT, false, 0, 0);    
+    gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+    var isGround = gl.getUniformLocation(program, "ground");
+    var lightingOn = gl.getUniformLocation(program, "lighting");
+    gl.uniform1i( lightingOn, lighting );
+
 
     gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-    gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_SHORT, 0);
 
+    if(ground){
+        if(groundColor)
+            gl.uniform4fv(fColor, flatten(magenta));
+        else
+            gl.uniform4fv(fColor, flatten(black));
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
+        gl.uniform1i( isGround, true );
+        gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_SHORT, 0);
+    }
+
+    if(grid){
+        if(gridColor)
+            gl.uniform4fv(fColor, flatten(magenta));
+        else
+            gl.uniform4fv(fColor, flatten(black));
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, meshIndexBuffer);
+        gl.uniform1i( isGround, false );
+        for(var i=meshIndices.length-4;i>=0;i-=4)
+            gl.drawElements(gl.LINE_LOOP, 4, gl.UNSIGNED_SHORT, i*2);
+        
+    }
+    
+    if(points){
+        if(pointsColor)
+            gl.uniform4fv(fColor, flatten(magenta));
+        else
+            gl.uniform4fv(fColor, flatten(black));
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
+        gl.uniform1i( isGround, false );
+        gl.drawElements(gl.POINT, indices.length, gl.UNSIGNED_SHORT, 0);
+    }
 
     requestAnimFrame(render);
 }
