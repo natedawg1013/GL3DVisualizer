@@ -92,7 +92,7 @@
           position.y += sin((position.x+1.0)*3.14159/2.0)/4.0;
           gl_Position = projectionMatrix*modelViewMatrix*position;
           if(!ground){
-            gl_Position.y+=0.02;
+            gl_Position.y+=0.01;
           }
     } 
     </script>

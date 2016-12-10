@@ -489,7 +489,7 @@ function render()
             gl.uniform4fv(fColor, flatten(black));
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, meshIndexBuffer);
         gl.uniform1i( isGround, false );
-        for(var i=meshIndices.length-4;i>=0;i-=4)
+        for(var i=0;i<meshIndices.length;i+=4)
             gl.drawElements(gl.LINE_LOOP, 4, gl.UNSIGNED_SHORT, i*2);
         
     }
