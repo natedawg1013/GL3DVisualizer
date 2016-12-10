@@ -7,10 +7,10 @@
     <script type="text/javascript" src="../Common/webgl-utils.js"></script>
     <script type="text/javascript" src="../Common/initShaders.js"></script>
     <script type="text/javascript" src="../Common/MV.js"></script>
-    
+
   </head>
   <body>
-    <style>	
+    <style>
       body { background: black; margin:0; padding:0;}
       canvas {margin: 0 auto; display: block}
     </style>
@@ -33,7 +33,7 @@
     varying vec4 color;
     varying vec4 pos;
 	//desert color scheme
-    void main() 
+    void main()
     {
           pos = vPosition;
           if(vPosition.y<-0.1){
@@ -49,7 +49,7 @@
           position.y += sin((position.x+1.0)*3.14159/2.0)/4.0;
           gl_Position = projectionMatrix*modelViewMatrix*position;
         //gl_Position = projectionMatrix*modelViewMatrix*vPosition;
-    } 
+    }
     </script>
 
     <script id="fragment-shader" type="x-shader/x-fragment">
@@ -73,8 +73,7 @@
 
       var temp;
       var analyser;
-      var source1;
-      var finishedLoadingFlag = 0;
+      var source;
       var audioFile = document.getElementById("audioFile");
       var audioPlayer = document.getElementById("audioPlayer");
 
@@ -87,35 +86,23 @@
         alert('Web Audio API is not supported in this browser');
       }
 
+      //When user selects a new file to play this function is triggered switching the Audio Elements src
       audioFile.onchange = function(){
           var files = this.files;
           var file = URL.createObjectURL(files[0]);
           audioPlayer.src = file;
       };
 
-      //bufferLoader = new BufferLoader(context,['http://homepages.rpi.edu/~moraws/homeworks/termProject/resources/SO-EN.ogg',],finishedLoading);
-      //bufferLoader.load();
-      finishedLoading();
-
-      function finishedLoading(bufferList) {
-
-      //source1 = context.createBufferSource();
-      source1 = context.createMediaElementSource(audioPlayer);
+      //Set source equal to a source node that is the HTML5 Audio Element.
+      source = context.createMediaElementSource(audioPlayer);
+      //Create a new analyser node
       analyser = context.createAnalyser();
-      //source1.buffer = bufferList[0];
 
-      source1.connect(analyser);
-      //audio_player.connect(analyser);
+      //Connect the source node to the analyser
+      source.connect(analyser);
+      //Connect the output from the analyser to the context destination.
       analyser.connect(context.destination);
-/*
-      if (!source1.start) {
-          source1.start = audioBufferSouceNode.noteOn //in old browsers use noteOn method
-          source1.stop = audioBufferSouceNode.noteOff //in old browsers use noteOff method
-      };
-      source1.start(0);*/
-      finishedLoadingFlag = 1;
 
-      }
     </script>
   <canvas id="gl-canvas" width="1000" height="1000">
 Oops ... your browser doesn't support the HTML5 canvas element
